@@ -1,9 +1,5 @@
 # Backend + Base de datos
 sistema API REST, que gestiona  un Sistema de Citas y reportes de un Hospital 
-
----
-# Fiber Task API
-
 API RESTful desarrollada con Go y Fiber para la gestión de de citas y reportes utilizando autenticación JWT y almacenamiento en supabase.
 
 ---
@@ -32,16 +28,18 @@ API RESTful desarrollada con Go y Fiber para la gestión de de citas y reportes 
 ```bash
 git clone https://github.com/Valeria-Miguel/back-menchaca.git
 ```
-# ir al proyecto
+### ir al proyecto
+```bash
 cd back-menchaca
-
-# instalar dependencias
+```
+### instalar dependencias
+```bash
 go mod tidy
 
 # ejecutar el servidor
 go run main.go
-
-##  Configuración `.env`
+```
+###  Configuración `.env`
 
 ```bash
 DATABASE_URL= tu conexion a sudabase

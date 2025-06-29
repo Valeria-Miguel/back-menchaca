@@ -4,7 +4,7 @@ Todas las modificaciones importantes de este proyecto se documentan aqui
 
 ---
 
-## [1.0.0] - 2025-06-28
+## [1.0] - 2025-06-28
 
 ###  Versión inicial
 
@@ -34,7 +34,7 @@ Todas las modificaciones importantes de este proyecto se documentan aqui
 - Se integraron mas validaciones al utils/validate.go
 ---
 
-## [0.9.0] - 2025-06-27
+## [0.2] - 2025-06-27
 
 ### Nuevas funcionalidades
 
@@ -49,7 +49,7 @@ Todas las modificaciones importantes de este proyecto se documentan aqui
 
 ---
 
-## [0.8.0] - 2025-06-26
+## [0.1] - 2025-06-26
 
 ### Estructura base
 
