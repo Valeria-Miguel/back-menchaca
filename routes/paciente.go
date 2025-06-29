@@ -17,5 +17,3 @@ func SetupPacienteRoutes(app fiber.Router) {
 	paciente.Put("/update", handlers.ActualizarPaciente)
 	paciente.Delete("/delete", handlers.EliminarPaciente)
 }
-
-//empleado := app.Group("/empleados", middleware.JWTProtected("empleado"))

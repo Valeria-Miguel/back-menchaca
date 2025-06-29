@@ -7,7 +7,6 @@ import (
 	"back-menchaca/utils"
 )
 
-// GET /api/aviso-privacidad
 func ObtenerAvisoPrivacidad(c *fiber.Ctx) error {
 	aviso := `
 <h2>Aviso de Privacidad</h2>
@@ -18,7 +17,6 @@ func ObtenerAvisoPrivacidad(c *fiber.Ctx) error {
 	return c.Type("html").SendString(aviso)
 }
 
-// POST /api/consentimiento
 func RegistrarConsentimiento(c *fiber.Ctx) error {
 	var body struct {
 		IDPaciente int `json:"id_paciente"`

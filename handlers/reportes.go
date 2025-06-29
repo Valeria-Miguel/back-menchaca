@@ -1,5 +1,3 @@
-// Reportes disponibles para el sistema hospitalario
-
 package handlers
 
 import (
@@ -7,7 +5,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-// POST /api/reportes/consultas-por-paciente-detalle
 func ReporteDetalleConsultasPorPaciente(c *fiber.Ctx) error {
 	var body struct {
 		IDPaciente int `json:"id_paciente"`
@@ -66,7 +63,6 @@ func ReporteDetalleConsultasPorPaciente(c *fiber.Ctx) error {
 
 
 
-// GET /api/reportes/consultas-por-area
 func ReporteConsultasPorArea(c *fiber.Ctx) error {
 	rows, err := config.DB.Query(`SELECT e.area, COUNT(*) FROM Consultas c JOIN Horarios h ON c.id_horario = h.id_horario JOIN Empleado e ON h.id_empleado = e.id_empleado GROUP BY e.area`)
 	if err != nil {
@@ -85,7 +81,6 @@ func ReporteConsultasPorArea(c *fiber.Ctx) error {
 	return c.JSON(data)
 }
 
-// GET /api/reportes/consultas-por-turno
 func ReporteConsultasPorTurno(c *fiber.Ctx) error {
 	rows, err := config.DB.Query(`SELECT h.turno, COUNT(*) FROM Consultas c JOIN Horarios h ON c.id_horario = h.id_horario GROUP BY h.turno`)
 	if err != nil {
@@ -104,7 +99,6 @@ func ReporteConsultasPorTurno(c *fiber.Ctx) error {
 	return c.JSON(data)
 }
 
-// GET /api/reportes/ingresos-por-consultorio
 func ReporteIngresosPorConsultorio(c *fiber.Ctx) error {
 	rows, err := config.DB.Query(`SELECT cons.nombre, SUM(c.costo) FROM Consultas c JOIN Consultorios cons ON c.id_consultorio = cons.id_consultorio GROUP BY cons.nombre`)
 	if err != nil {
@@ -123,7 +117,6 @@ func ReporteIngresosPorConsultorio(c *fiber.Ctx) error {
 	return c.JSON(data)
 }
 
-// GET /api/reportes/detalles-consulta-expediente
 func ReporteDetallesConsultaExpediente(c *fiber.Ctx) error {
 	var body struct {
 		IDExpediente int `json:"id_expediente"`
@@ -163,7 +156,6 @@ func ReporteDetallesConsultaExpediente(c *fiber.Ctx) error {
 	return c.JSON(resultados)
 }
 
-// GET /api/consultas/detalle-simple
 func ObtenerDetalleSimpleConsultas(c *fiber.Ctx) error {
 	query := `
 		SELECT

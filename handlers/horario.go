@@ -8,34 +8,29 @@ import (
 	"strings"
 )
 
-// POST /api/horarios
 func CrearHorario(c *fiber.Ctx) error {
 	var h models.Horario
 	if err := c.BodyParser(&h); err != nil {
 		return c.Status(400).JSON(fiber.Map{"error": "Datos inválidos"})
 	}
 
-	// Validar formato
 	if err := utils.ValidarHorario(h.Turno, h.IDEmpleado, h.IDConsultorio); err != nil {
 		return c.Status(400).JSON(fiber.Map{"error": err.Error()})
 	}
 	h.Turno = utils.SanitizarInput(strings.ToLower(h.Turno))
 
-	// Verificar existencia de empleado
 	var empExists bool
 	err := config.DB.QueryRow("SELECT EXISTS(SELECT 1 FROM Empleado WHERE id_empleado=$1)", h.IDEmpleado).Scan(&empExists)
 	if err != nil || !empExists {
 		return c.Status(400).JSON(fiber.Map{"error": "El empleado no existe"})
 	}
 
-	// Verificar existencia de consultorio
 	var consExists bool
 	err = config.DB.QueryRow("SELECT EXISTS(SELECT 1 FROM Consultorios WHERE id_consultorio=$1)", h.IDConsultorio).Scan(&consExists)
 	if err != nil || !consExists {
 		return c.Status(400).JSON(fiber.Map{"error": "El consultorio no existe"})
 	}
 
-	// Insertar
 	query := `INSERT INTO Horarios (id_consultorio, turno, id_empleado) 
 	          VALUES ($1, $2, $3) RETURNING id_horario`
 	err = config.DB.QueryRow(query, h.IDConsultorio, h.Turno, h.IDEmpleado).Scan(&h.ID)
@@ -45,7 +40,6 @@ func CrearHorario(c *fiber.Ctx) error {
 	return c.Status(201).JSON(h)
 }
 
-// GET /api/horarios
 func ObtenerHorarios(c *fiber.Ctx) error {
 	rows, err := config.DB.Query("SELECT id_horario, id_consultorio, turno, id_empleado FROM Horarios")
 	if err != nil {
@@ -63,7 +57,6 @@ func ObtenerHorarios(c *fiber.Ctx) error {
 	return c.JSON(lista)
 }
 
-// POST /api/horarios/get
 func ObtenerHorarioPorID(c *fiber.Ctx) error {
 	var body struct {
 		ID int `json:"id_horario"`
@@ -83,14 +76,12 @@ func ObtenerHorarioPorID(c *fiber.Ctx) error {
 	return c.JSON(h)
 }
 
-// PUT /api/horarios/update
 func ActualizarHorario(c *fiber.Ctx) error {
 	var h models.Horario
 	if err := c.BodyParser(&h); err != nil || h.ID == 0 {
 		return c.Status(400).JSON(fiber.Map{"error": "Datos inválidos"})
 	}
 
-	// Obtener datos actuales
 	var actual models.Horario
 	err := config.DB.QueryRow(
 		"SELECT id_consultorio, turno, id_empleado FROM Horarios WHERE id_horario=$1", h.ID,
@@ -99,7 +90,6 @@ func ActualizarHorario(c *fiber.Ctx) error {
 		return c.Status(404).JSON(fiber.Map{"error": "Horario no encontrado"})
 	}
 
-	// Conservar los campos no enviados
 	if h.IDConsultorio == 0 {
 		h.IDConsultorio = actual.IDConsultorio
 	}
@@ -112,21 +102,18 @@ func ActualizarHorario(c *fiber.Ctx) error {
 		h.IDEmpleado = actual.IDEmpleado
 	}
 
-	// Verificar existencia del consultorio
 	var consExists bool
 	err = config.DB.QueryRow("SELECT EXISTS(SELECT 1 FROM Consultorios WHERE id_consultorio=$1)", h.IDConsultorio).Scan(&consExists)
 	if err != nil || !consExists {
 		return c.Status(400).JSON(fiber.Map{"error": "El consultorio no existe"})
 	}
 
-	// Verificar existencia del empleado
 	var empExists bool
 	err = config.DB.QueryRow("SELECT EXISTS(SELECT 1 FROM Empleado WHERE id_empleado=$1)", h.IDEmpleado).Scan(&empExists)
 	if err != nil || !empExists {
 		return c.Status(400).JSON(fiber.Map{"error": "El empleado no existe"})
 	}
 
-	// Ejecutar actualización
 	_, err = config.DB.Exec(
 		"UPDATE Horarios SET id_consultorio=$1, turno=$2, id_empleado=$3 WHERE id_horario=$4",
 		h.IDConsultorio, h.Turno, h.IDEmpleado, h.ID,
@@ -139,7 +126,6 @@ func ActualizarHorario(c *fiber.Ctx) error {
 }
 
 
-// DELETE /api/horarios/delete
 func EliminarHorario(c *fiber.Ctx) error {
 	var body struct {
 		ID int `json:"id_horario"`

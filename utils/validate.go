@@ -11,9 +11,9 @@ import (
 	"back-menchaca/config"
 )
 func SanitizarInput(s string) string {
-	// Quita espacios y caracteres HTML peligrosos
+	//quita espacios y caracteres HTML peligrosos
 	s = strings.TrimSpace(s)
-	s = html.EscapeString(s) // <- evita que el string tenga etiquetas <script> etc.
+	s = html.EscapeString(s) // <- evita que el string tenga etiquetas <script> etc
 	return s
 } 
 func ValidarCorreo(email string) bool {
@@ -26,7 +26,6 @@ func ValidarTextoLetras(input string) bool {
 	return re.MatchString(input)
 }
 
-// ✅ Validar contraseña manualmente
 func ValidarContrasena(pw string) error {
 	if len(pw) < 8 {
 		return errors.New("La contraseña debe tener al menos 8 caracteres")
@@ -160,13 +159,11 @@ func ValidarReceta(medicamento, dosis string, idConsultorio int) error {
 }
 
 
-// ValidarSeguro verifica que el campo seguro no esté vacío y no contenga caracteres raros
 func ValidarSeguro(seguro string) error {
     seguro = strings.TrimSpace(seguro)
     if seguro == "" {
         return errors.New("El campo 'seguro' no puede estar vacío")
     }
-    // Puedes agregar más validaciones específicas si quieres (longitud, formato, etc.)
     return nil
 }
 
@@ -178,7 +175,6 @@ func ExisteIDExped(id int) bool {
 	return err == nil && existe
 }
 
-// ValidarAntecedente valida los campos de Antecedentes
 func ValidarAntecedente(diagnostico, descripcion string, fecha time.Time, idExpediente int) error {
     if idExpediente <= 0 {
         return errors.New("ID de expediente inválido")

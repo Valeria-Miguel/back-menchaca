@@ -9,14 +9,12 @@ import (
 
 )
 
-// POST /api/consultorios
 func CrearConsultorio(c *fiber.Ctx) error {
 	var cons models.Consultorio
 	if err := c.BodyParser(&cons); err != nil {
 		return c.Status(400).JSON(fiber.Map{"error": "Datos inválidos"})
 	}
 
-	// Validar
 	if err := utils.ValidarConsultorio(cons.Nombre, cons.Tipo); err != nil {
 		return c.Status(400).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -25,7 +23,6 @@ func CrearConsultorio(c *fiber.Ctx) error {
 	cons.Nombre = utils.SanitizarInput(cons.Nombre)
 	cons.Tipo = utils.SanitizarInput(cons.Tipo)
 
-	// Insertar
 	query := `INSERT INTO Consultorios (nombre, tipo) VALUES ($1, $2) RETURNING id_consultorio`
 	err := config.DB.QueryRow(query, cons.Nombre, cons.Tipo).Scan(&cons.ID)
 	if err != nil {
@@ -34,7 +31,6 @@ func CrearConsultorio(c *fiber.Ctx) error {
 	return c.Status(201).JSON(cons)
 }
 
-// GET /api/consultorios
 func ObtenerConsultorios(c *fiber.Ctx) error {
 	rows, err := config.DB.Query("SELECT id_consultorio, nombre, tipo FROM Consultorios")
 	if err != nil {
@@ -52,7 +48,6 @@ func ObtenerConsultorios(c *fiber.Ctx) error {
 	return c.JSON(lista)
 }
 
-// POST /api/consultorios/get
 func ObtenerConsultorioPorID(c *fiber.Ctx) error {
 	var body struct {
 		ID int `json:"id_consultorio"`
@@ -72,14 +67,12 @@ func ObtenerConsultorioPorID(c *fiber.Ctx) error {
 	return c.JSON(cons)
 }
 
-// PUT /api/consultorios/update
 func ActualizarConsultorio(c *fiber.Ctx) error {
 	var cons models.Consultorio
 	if err := c.BodyParser(&cons); err != nil || cons.ID == 0 {
 		return c.Status(400).JSON(fiber.Map{"error": "Datos inválidos"})
 	}
 
-	// Obtener datos actuales
 	var actual models.Consultorio
 	err := config.DB.QueryRow("SELECT nombre, tipo FROM Consultorios WHERE id_consultorio = $1", cons.ID).
 		Scan(&actual.Nombre, &actual.Tipo)
@@ -87,7 +80,6 @@ func ActualizarConsultorio(c *fiber.Ctx) error {
 		return c.Status(404).JSON(fiber.Map{"error": "Consultorio no encontrado"})
 	}
 
-	// Usar los datos nuevos si vienen, si no, mantener los existentes
 	if strings.TrimSpace(cons.Nombre) != "" {
 		actual.Nombre = utils.SanitizarInput(cons.Nombre)
 	}
@@ -106,7 +98,6 @@ func ActualizarConsultorio(c *fiber.Ctx) error {
 }
 
 
-// DELETE /api/consultorios/delete
 func EliminarConsultorio(c *fiber.Ctx) error {
 	var body struct {
 		ID int `json:"id_consultorio"`

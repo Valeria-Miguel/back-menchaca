@@ -10,7 +10,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-// POST /api/recetas
 func CrearReceta(c *fiber.Ctx) error {
 	var r models.Receta
 	if err := c.BodyParser(&r); err != nil {
@@ -36,7 +35,6 @@ func CrearReceta(c *fiber.Ctx) error {
 	return c.Status(201).JSON(r)
 }
 
-// GET /api/recetas
 func ObtenerRecetas(c *fiber.Ctx) error {
 	rows, err := config.DB.Query("SELECT id_receta, fecha, medicamento, dosis, id_consultorio FROM Recetas")
 	if err != nil {
@@ -54,7 +52,6 @@ func ObtenerRecetas(c *fiber.Ctx) error {
 	return c.JSON(recetas)
 }
 
-// POST /api/recetas/get
 func ObtenerRecetaPorID(c *fiber.Ctx) error {
 	var body struct {
 		ID int `json:"id_receta"`
@@ -77,14 +74,12 @@ func ObtenerRecetaPorID(c *fiber.Ctx) error {
 }
 
 
-// PUT /api/recetas/update
 func ActualizarReceta(c *fiber.Ctx) error {
 	var r models.Receta
 	if err := c.BodyParser(&r); err != nil || r.ID == 0 {
 		return c.Status(400).JSON(fiber.Map{"error": "Datos inválidos"})
 	}
 
-	// Cargar receta actual
 	var actual models.Receta
 	err := config.DB.QueryRow("SELECT fecha, medicamento, dosis, id_consultorio FROM Recetas WHERE id_receta=$1", r.ID).
 		Scan(&actual.Fecha, &actual.Medicamento, &actual.Dosis, &actual.IDConsultorio)
@@ -94,7 +89,6 @@ func ActualizarReceta(c *fiber.Ctx) error {
 		return c.Status(500).JSON(fiber.Map{"error": "Error al consultar receta"})
 	}
 
-	// Mantener campos no enviados
 	if r.Fecha.IsZero() {
 		r.Fecha = actual.Fecha
 	}
@@ -117,7 +111,6 @@ func ActualizarReceta(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"mensaje": "Receta actualizada"})
 }
 
-// DELETE /api/recetas/delete
 func EliminarReceta(c *fiber.Ctx) error {
 	var body struct {
 		ID int `json:"id_receta"`

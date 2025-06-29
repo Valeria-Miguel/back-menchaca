@@ -28,11 +28,9 @@ func Login(c *fiber.Ctx) error {
 		err            error
 	)
 
-	// Buscar en empleados
 	err = config.DB.QueryRow(`SELECT id_empleado, contraseña FROM Empleado WHERE correo=$1`, input.Correo).
 		Scan(&id, &hashedPassword)
 	if err == sql.ErrNoRows {
-		// No está en empleados, buscar en pacientes
 		err = config.DB.QueryRow(`SELECT id_paciente, contraseña FROM Paciente WHERE correo=$1`, input.Correo).
 			Scan(&id, &hashedPassword)
 		if err == sql.ErrNoRows {

@@ -10,20 +10,16 @@ import (
 
 
 
-
-// POST /api/consultas
 func AgendarConsulta(c *fiber.Ctx) error {
 	var cons models.Consulta
 	if err := c.BodyParser(&cons); err != nil {
 		return c.Status(400).JSON(fiber.Map{"error": "Datos inválidos"})
 	}
 
-	// Validar campos obligatorios
 	if err := utils.ValidarConsulta(cons); err != nil {
 		return c.Status(400).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	// Verificar existencia de relaciones
 	if !utils.ExisteID("Paciente", "id_paciente", cons.IDPaciente) {
 		return c.Status(400).JSON(fiber.Map{"error": "ID de paciente no válido"})
 	}
@@ -45,7 +41,6 @@ func AgendarConsulta(c *fiber.Ctx) error {
 	return c.Status(201).JSON(cons)
 }
 
-// GET /api/consultas
 func ObtenerConsultas(c *fiber.Ctx) error {
 	rows, err := config.DB.Query(`SELECT id_consulta, id_paciente, tipo, id_receta, id_horario, id_consultorio, diagnostico, costo, fecha_hora FROM Consultas`) 
 
@@ -64,7 +59,6 @@ func ObtenerConsultas(c *fiber.Ctx) error {
 	return c.JSON(consultas)
 }
 
-// POST /api/consultas/get
 func ObtenerConsultaPorID(c *fiber.Ctx) error {
 	var body struct {
 		ID int `json:"id_consulta"`
@@ -89,14 +83,12 @@ func ObtenerConsultaPorID(c *fiber.Ctx) error {
 	return c.JSON(cons)
 }
 
-// PUT /api/consultas/update
 func ActualizarConsulta(c *fiber.Ctx) error {
 	var cons models.Consulta
 	if err := c.BodyParser(&cons); err != nil || cons.ID == 0 {
 		return c.Status(400).JSON(fiber.Map{"error": "Datos inválidos"})
 	}
 
-	// Obtener datos actuales
 	var actual models.Consulta
 	err := config.DB.QueryRow(`SELECT id_paciente, tipo, id_receta, id_horario, id_consultorio, diagnostico, costo, fecha_hora FROM Consultas WHERE id_consulta=$1`, cons.ID).
 		Scan(&actual.IDPaciente, &actual.Tipo, &actual.IDReceta, &actual.IDHorario, &actual.IDConsultorio, &actual.Diagnostico, &actual.Costo, &actual.FechaHora)
@@ -106,7 +98,6 @@ func ActualizarConsulta(c *fiber.Ctx) error {
 		return c.Status(500).JSON(fiber.Map{"error": "Error al buscar consulta"})
 	}
 
-	// Conservar campos no enviados
 	if cons.IDPaciente == 0 {
 		cons.IDPaciente = actual.IDPaciente
 	}
@@ -141,7 +132,6 @@ func ActualizarConsulta(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"mensaje": "Consulta actualizada"})
 }
 
-// DELETE /api/consultas/delete
 func EliminarConsulta(c *fiber.Ctx) error {
 	var body struct {
 		ID int `json:"id_consulta"`

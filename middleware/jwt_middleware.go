@@ -28,7 +28,7 @@ func JWTProtected (allowedRoles ...string) fiber.Handler {
 		c.Locals("email", claims["email"])
 		c.Locals("rol", claims["rol"])
 
-		// Verificar si el rol está permitido
+		//verificar si el rol está permitido
 		if len(allowedRoles) > 0 {
 			userRol := claims["rol"].(string)
 			valid := false

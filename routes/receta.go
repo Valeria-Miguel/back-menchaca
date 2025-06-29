@@ -7,7 +7,7 @@ import (
 )
 
 func SetupRecetasRoutes(app fiber.Router) {
-	rec := app.Group("/recetas", middleware.JWTProtected("paciente", "empleados"))
+	rec := app.Group("/recetas", middleware.JWTProtected("paciente", "empleado"))
 
 	rec.Post("/", handlers.CrearReceta)
 	rec.Get("/get", handlers.ObtenerRecetas)

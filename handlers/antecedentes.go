@@ -8,19 +8,16 @@ import (
     "github.com/gofiber/fiber/v2"
 )
 
-// POST /api/antecedentes
 func CrearAntecedente(c *fiber.Ctx) error {
     var a models.Antecedente
     if err := c.BodyParser(&a); err != nil {
         return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Datos inválidos"})
     }
 
-    // Validar existencia expediente
     if !utils.ExisteID("Expediente", "id_expediente", a.IDExpediente) {
         return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "ID de expediente no válido"})
     }
 
-    // Validar campos
     if err := utils.ValidarAntecedente(a.Diagnostico, a.Descripcion, a.Fecha, a.IDExpediente); err != nil {
         return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
     }
@@ -34,7 +31,6 @@ func CrearAntecedente(c *fiber.Ctx) error {
     return c.Status(fiber.StatusCreated).JSON(a)
 }
 
-// GET /api/antecedentes
 func ObtenerAntecedentes(c *fiber.Ctx) error {
     rows, err := config.DB.Query(`SELECT id_antecedente, id_expediente, diagnostico, descripcion, fecha FROM Antecedentes`)
     if err != nil {
@@ -52,7 +48,6 @@ func ObtenerAntecedentes(c *fiber.Ctx) error {
     return c.JSON(antecedentes)
 }
 
-// POST /api/antecedentes/get
 func ObtenerAntecedentePorID(c *fiber.Ctx) error {
     var body struct {
         ID int `json:"id_antecedente"`
@@ -72,7 +67,6 @@ func ObtenerAntecedentePorID(c *fiber.Ctx) error {
     return c.JSON(a)
 }
 
-// PUT /api/antecedentes/update
 func ActualizarAntecedente(c *fiber.Ctx) error {
     var a models.Antecedente
     if err := c.BodyParser(&a); err != nil || a.ID == 0 {
@@ -116,7 +110,6 @@ func ActualizarAntecedente(c *fiber.Ctx) error {
     return c.JSON(fiber.Map{"mensaje": "Antecedente actualizado"})
 }
 
-// DELETE /api/antecedentes/delete
 func EliminarAntecedente(c *fiber.Ctx) error {
     var body struct {
         ID int `json:"id_antecedente"`

@@ -105,7 +105,6 @@ func ActualizarEmpleado(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Datos inválidos"})
 	}
 
-	// Leer datos actuales
 	var current models.Empleado
 	err := config.DB.QueryRow(
 		"SELECT nombre, appaterno, apmaterno, tipo_empleado, area, correo FROM Empleado WHERE id_empleado = $1", e.ID,
@@ -114,7 +113,6 @@ func ActualizarEmpleado(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Empleado no encontrado"})
 	}
 
-	// Para cada campo: si el enviado está vacío, usar el actual
 	if e.Nombre == "" {
 		e.Nombre = current.Nombre
 	}
@@ -134,7 +132,6 @@ func ActualizarEmpleado(c *fiber.Ctx) error {
 		e.Correo = current.Correo
 	}
 
-	// Sanitizar antes de guardar
 	e.Nombre = utils.SanitizarInput(e.Nombre)
 	e.Appaterno = utils.SanitizarInput(e.Appaterno)
 	e.Apmaterno = utils.SanitizarInput(e.Apmaterno)
@@ -142,7 +139,6 @@ func ActualizarEmpleado(c *fiber.Ctx) error {
 	e.Area = utils.SanitizarInput(e.Area)
 	e.Correo = utils.SanitizarInput(strings.ToLower(e.Correo))
 
-	// Ejecutar actualización
 	_, err = config.DB.Exec(
 		`UPDATE Empleado SET nombre=$1, appaterno=$2, apmaterno=$3, tipo_empleado=$4, area=$5, correo=$6
 		 WHERE id_empleado=$7`,
@@ -166,7 +162,7 @@ func EliminarEmpleado(c *fiber.Ctx) error {
 
 	_, err := config.DB.Exec("DELETE FROM Empleado WHERE id_empleado = $1", body.ID)
 	if err != nil {
-		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Error al eliminar empleado"})
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Error al eliminar empleado" + err.Error(),})
 	}
 	return c.JSON(fiber.Map{"mensaje": "Empleado eliminado"})
 }

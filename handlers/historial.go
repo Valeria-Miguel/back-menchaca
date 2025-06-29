@@ -8,7 +8,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-// POST /api/historial
 func CrearHistorialClinico(c *fiber.Ctx) error {
 	var h models.HistorialClinico
 	if err := c.BodyParser(&h); err != nil {
@@ -37,7 +36,6 @@ func CrearHistorialClinico(c *fiber.Ctx) error {
 	return c.Status(201).JSON(h)
 }
 
-// GET /api/historial
 func ObtenerHistorialesClinicos(c *fiber.Ctx) error {
 	rows, err := config.DB.Query("SELECT id_historial, id_expediente, id_consultas FROM Historial_Clinico")
 	if err != nil {
@@ -55,7 +53,6 @@ func ObtenerHistorialesClinicos(c *fiber.Ctx) error {
 	return c.JSON(historiales)
 }
 
-// POST /api/historial/get
 func ObtenerHistorialClinicoPorID(c *fiber.Ctx) error {
 	var body struct {
 		ID int `json:"id_historial"`
@@ -77,7 +74,6 @@ func ObtenerHistorialClinicoPorID(c *fiber.Ctx) error {
 	return c.JSON(h)
 }
 
-// PUT /api/historial/update
 func ActualizarHistorialClinico(c *fiber.Ctx) error {
 	var h models.HistorialClinico
 	if err := c.BodyParser(&h); err != nil || h.ID == 0 {
@@ -110,7 +106,6 @@ func ActualizarHistorialClinico(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"mensaje": "Historial actualizado"})
 }
 
-// DELETE /api/historial/delete
 func EliminarHistorialClinico(c *fiber.Ctx) error {
 	var body struct {
 		ID int `json:"id_historial"`
