@@ -7,6 +7,7 @@ import (
 	"strings"
 	"unicode"
 	"time"
+	"fmt"
 	"back-menchaca/models"
 	"back-menchaca/config"
 )
@@ -27,42 +28,79 @@ func ValidarTextoLetras(input string) bool {
 }
 
 func ValidarContrasena(pw string) error {
-	if len(pw) < 8 {
-		return errors.New("La contraseña debe tener al menos 8 caracteres")
-	}
-	var hasUpper, hasLower, hasNumber, hasSpecial bool
-	for _, c := range pw {
-		switch {
-		case unicode.IsUpper(c):
-			hasUpper = true
-		case unicode.IsLower(c):
-			hasLower = true
-		case unicode.IsDigit(c):
-			hasNumber = true
-		case unicode.IsPunct(c) || unicode.IsSymbol(c):
-			hasSpecial = true
-		}
-	}
-	if !hasUpper || !hasLower || !hasNumber || !hasSpecial {
-		return errors.New("La contraseña debe incluir mayúsculas, minúsculas, número y símbolo")
-	}
-	return nil
+    if len(pw) < 12 {
+        return errors.New("La contraseña debe tener al menos 12 caracteres")
+    }
+    
+    var (
+        hasUpper   = false
+        hasLower   = false
+        hasNumber  = false
+        hasSpecial = false
+    )
+    
+    specialChars := "!@#$%^&*()_+-=[]{}|;:',.<>/?`~"
+    
+    for _, c := range pw {
+        switch {
+        case unicode.IsUpper(c):
+            hasUpper = true
+        case unicode.IsLower(c):
+            hasLower = true
+        case unicode.IsDigit(c):
+            hasNumber = true
+        case strings.ContainsRune(specialChars, c):
+            hasSpecial = true
+        }
+    }
+    
+    var missing []string
+    if !hasUpper {
+        missing = append(missing, "mayúscula")
+    }
+    if !hasLower {
+        missing = append(missing, "minúscula")
+    }
+    if !hasNumber {
+        missing = append(missing, "número")
+    }
+    if !hasSpecial {
+        missing = append(missing, "símbolo especial (!@#$%^&* etc.)")
+    }
+    
+    if len(missing) > 0 {
+        return fmt.Errorf("La contraseña debe incluir al menos un: %s", strings.Join(missing, ", "))
+    }
+    
+    return nil
+}
+func ValidarPaciente(p models.Paciente) error {
+    // Validar nombre
+    if strings.TrimSpace(p.Nombre) == "" {
+        return errors.New("El nombre es requerido")
+    }
+    
+    // Validar apellido paterno
+    if strings.TrimSpace(p.Appaterno) == "" {
+        return errors.New("El apellido paterno es requerido")
+    }
+    
+    // Validar correo
+    if !isValidEmail(p.Correo) {
+        return errors.New("El correo electrónico no es válido")
+    }
+    
+    // Validar contraseña
+    if err := ValidarContrasena(p.Contrasena); err != nil {
+        return err
+    }
+    
+    return nil
 }
 
-func ValidarPaciente(nombre, appaterno, correo, contrasena string) error {
-	if strings.TrimSpace(nombre) == "" || !ValidarTextoLetras(nombre) {
-		return errors.New("Nombre inválido")
-	}
-	if strings.TrimSpace(appaterno) == "" || !ValidarTextoLetras(appaterno) {
-		return errors.New("Apellido paterno inválido")
-	}
-	if correo == "" || !ValidarCorreo(correo) {
-		return errors.New("Correo inválido")
-	}
-	if err := ValidarContrasena(contrasena); err != nil {
-		return err
-	}
-	return nil
+func isValidEmail(email string) bool {
+    emailRegex := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
+    return emailRegex.MatchString(email)
 }
 
 func ValidarEmpleado(nombre, appaterno, tipo, area, correo, contrasena string) error {

@@ -11,73 +11,106 @@ import (
 )
 
 func CrearPaciente(c *fiber.Ctx) error {
-	var p models.Paciente
+    var p models.Paciente
 
-	if err := c.BodyParser(&p); err != nil {
-		return c.Status(http.StatusBadRequest).JSON(fiber.Map{
-			"error": "Datos inválidos",
-		})
-	}
+    if err := c.BodyParser(&p); err != nil {
+        return c.Status(http.StatusBadRequest).JSON(fiber.Map{
+            "statusCode": 400,
+            "intCode": "A01",
+            "message": "Datos inválidos",
+            "from": "paciente-service",
+        })
+    }
 
-	if err := utils.ValidarPaciente(p.Nombre, p.Appaterno, p.Correo, p.Contrasena); err != nil {
-		return c.Status(http.StatusBadRequest).JSON(fiber.Map{
-			"error": err.Error(),
-		})
-	}
-	p.Nombre     = utils.SanitizarInput(p.Nombre)
-	p.Appaterno  = utils.SanitizarInput(p.Appaterno)
-	p.Apmaterno  = utils.SanitizarInput(p.Apmaterno)
-	p.Correo     = utils.SanitizarInput(strings.ToLower(p.Correo)) // estandarizar y sanitizar
+    // Validación mejorada
+    if err := utils.ValidarPaciente(p); err != nil {
+        return c.Status(http.StatusBadRequest).JSON(fiber.Map{
+            "statusCode": 400,
+            "intCode": "A01",
+            "message": err.Error(),
+            "from": "paciente-service",
+        })
+    }
 
-	p.Correo = strings.ToLower(p.Correo)
+    // Sanitización
+    p.Nombre = utils.SanitizarInput(p.Nombre)
+    p.Appaterno = utils.SanitizarInput(p.Appaterno)
+    p.Apmaterno = utils.SanitizarInput(p.Apmaterno)
+    p.Correo = utils.SanitizarInput(strings.ToLower(p.Correo))
 
-	var count int
-	err := config.DB.QueryRow(
-		"SELECT COUNT(*) FROM Paciente WHERE correo = $1", p.Correo,
-	).Scan(&count)
-	if err != nil {
-		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Error al verificar correo en pacientes",
-		})
-	}
-	if count > 0 {
-		return c.Status(http.StatusBadRequest).JSON(fiber.Map{
-			"error": "El correo ya está registrado como paciente",
-		})
-	}
+    // Verificación de correo único
+    var count int
+    if err := config.DB.QueryRow(
+        `SELECT COUNT(*) FROM (
+            SELECT correo FROM Paciente 
+            UNION 
+            SELECT correo FROM Empleado
+        ) AS usuarios WHERE correo = $1`, p.Correo,
+    ).Scan(&count); err != nil {
+        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
+            "statusCode": 500,
+            "intCode": "A03",
+            "message": "Error al verificar correo",
+            "from": "paciente-service",
+        })
+    }
 
-	err = config.DB.QueryRow(
-		"SELECT COUNT(*) FROM Empleado WHERE correo = $1", p.Correo,
-	).Scan(&count)
-	if err != nil {
-		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Error al verificar correo en empleados",
-		})
-	}
-	if count > 0 {
-		return c.Status(http.StatusBadRequest).JSON(fiber.Map{
-			"error": "El correo ya está registrado como empleado",
-		})
-	}
+    if count > 0 {
+        return c.Status(http.StatusBadRequest).JSON(fiber.Map{
+            "statusCode": 400,
+            "intCode": "A01",
+            "message": "El correo ya está registrado",
+            "from": "paciente-service",
+        })
+    }
 
-	hashed, err := utils.HashPassword(p.Contrasena)
-	if err != nil {
-		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Error al proteger la contraseña",
-		})
-	}
+    // Hash de contraseña
+    hashed, err := utils.HashPassword(p.Contrasena)
+    if err != nil {
+        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
+            "statusCode": 500,
+            "intCode": "A03",
+            "message": "Error al proteger la contraseña",
+            "from": "paciente-service",
+        })
+    }
 
-	query := `INSERT INTO Paciente (nombre, appaterno, apmaterno, correo, contraseña) 
-	          VALUES ($1, $2, $3, $4, $5) RETURNING id_paciente`
-	err = config.DB.QueryRow(query, p.Nombre, p.Appaterno, p.Apmaterno, p.Correo, hashed).Scan(&p.ID)
-	if err != nil {
-		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Error al crear paciente",
-		})
-	}
+    // Creación en BD
+    query := `INSERT INTO Paciente (nombre, appaterno, apmaterno, correo, contrasena) 
+              VALUES ($1, $2, $3, $4, $5) RETURNING id_paciente`
+    err = config.DB.QueryRow(query, 
+        p.Nombre, 
+        p.Appaterno, 
+        p.Apmaterno, 
+        p.Correo, 
+        hashed,
+    ).Scan(&p.ID)
+    
+    if err != nil {
+        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
+            "statusCode": 500,
+            "intCode": "A03",
+            "message": "Error al crear paciente",
+            "from": "paciente-service",
+        })
+    }
 
-	p.Contrasena = ""
-	return c.Status(http.StatusCreated).JSON(p)
+    // Limpiar datos sensibles
+    p.Contrasena = ""
+    
+    return c.Status(http.StatusCreated).JSON(fiber.Map{
+        "statusCode": 201,
+        "intCode": "S01",
+        "message": "Paciente creado exitosamente",
+        "from": "paciente-service",
+        "data": []fiber.Map{
+            {
+                "id": p.ID,
+                "nombre": p.Nombre,
+                "correo": p.Correo,
+            },
+        },
+    })
 }
 
 

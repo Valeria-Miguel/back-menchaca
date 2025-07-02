@@ -8,4 +8,5 @@ import (
 func SetupAuthRoutes(app fiber.Router) {
 	auth := app.Group("/auth")
 	auth.Post("/login", handlers.Login)
+	auth.Post("/refresh", handlers.RefreshToken)
 }

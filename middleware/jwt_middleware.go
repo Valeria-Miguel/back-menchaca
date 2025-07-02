@@ -8,11 +8,16 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func JWTProtected (allowedRoles ...string) fiber.Handler {
+func JWTProtected(allowedRoles ...string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		auth := c.Get("Authorization")
 		if auth == "" || !strings.HasPrefix(auth, "Bearer ") {
-			return c.Status(401).JSON(fiber.Map{"error": "Token requerido"})
+			return c.Status(401).JSON(fiber.Map{
+				"statusCode": 401,
+				"intCode": "A01",
+				"message": "Token requerido",
+				"from": "auth-service",
+			})
 		}
 
 		tokenStr := strings.TrimPrefix(auth, "Bearer ")
@@ -21,14 +26,19 @@ func JWTProtected (allowedRoles ...string) fiber.Handler {
 		})
 
 		if err != nil || !token.Valid {
-			return c.Status(401).JSON(fiber.Map{"error": "Token inválido"})
+			return c.Status(401).JSON(fiber.Map{
+				"statusCode": 401,
+				"intCode": "A01",
+				"message": "Token inválido o expirado",
+				"from": "auth-service",
+			})
 		}
 
 		claims := token.Claims.(jwt.MapClaims)
 		c.Locals("email", claims["email"])
 		c.Locals("rol", claims["rol"])
 
-		//verificar si el rol está permitido
+		// Verificar si el rol está permitido
 		if len(allowedRoles) > 0 {
 			userRol := claims["rol"].(string)
 			valid := false
@@ -39,12 +49,15 @@ func JWTProtected (allowedRoles ...string) fiber.Handler {
 				}
 			}
 			if !valid {
-				return c.Status(403).JSON(fiber.Map{"error": "Acceso denegado"})
+				return c.Status(403).JSON(fiber.Map{
+					"statusCode": 403,
+					"intCode": "A02",
+					"message": "Acceso denegado",
+					"from": "auth-service",
+				})
 			}
 		}
 
 		return c.Next()
 	}
 }
-
-
