@@ -8,42 +8,45 @@ import (
 	"strings"
 )
 
+const modHor = "HOR"
+
 func CrearHorario(c *fiber.Ctx) error {
 	var h models.Horario
 	if err := c.BodyParser(&h); err != nil {
-		return c.Status(400).JSON(fiber.Map{"error": "Datos inválidos"})
+		return utils.Responder(c, "02", modHor, "horario-service", nil, "Datos inválidos")
 	}
 
 	if err := utils.ValidarHorario(h.Turno, h.IDEmpleado, h.IDConsultorio); err != nil {
-		return c.Status(400).JSON(fiber.Map{"error": err.Error()})
+		return utils.Responder(c, "02", modHor, "horario-service", nil, err.Error())
 	}
 	h.Turno = utils.SanitizarInput(strings.ToLower(h.Turno))
 
 	var empExists bool
 	err := config.DB.QueryRow("SELECT EXISTS(SELECT 1 FROM Empleado WHERE id_empleado=$1)", h.IDEmpleado).Scan(&empExists)
 	if err != nil || !empExists {
-		return c.Status(400).JSON(fiber.Map{"error": "El empleado no existe"})
+		return utils.Responder(c, "02", modHor, "horario-service", nil, "Empleado no encontrado")
 	}
 
 	var consExists bool
 	err = config.DB.QueryRow("SELECT EXISTS(SELECT 1 FROM Consultorios WHERE id_consultorio=$1)", h.IDConsultorio).Scan(&consExists)
 	if err != nil || !consExists {
-		return c.Status(400).JSON(fiber.Map{"error": "El consultorio no existe"})
+		return utils.Responder(c, "02", modHor, "horario-service", nil, "Consultorio no encontrado")
 	}
 
 	query := `INSERT INTO Horarios (id_consultorio, turno, id_empleado) 
 	          VALUES ($1, $2, $3) RETURNING id_horario`
 	err = config.DB.QueryRow(query, h.IDConsultorio, h.Turno, h.IDEmpleado).Scan(&h.ID)
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": "Error al crear horario: " + err.Error()})
+		return utils.Responder(c, "06", modHor, "horario-service", nil, "Error al crear horario: "+err.Error())
 	}
-	return c.Status(201).JSON(h)
+
+	return utils.Responder(c, "01", modHor, "horario-service", h)
 }
 
 func ObtenerHorarios(c *fiber.Ctx) error {
 	rows, err := config.DB.Query("SELECT id_horario, id_consultorio, turno, id_empleado FROM Horarios")
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": "Error al obtener horarios"})
+		return utils.Responder(c, "06", modHor, "horario-service", nil, "Error al obtener horarios")
 	}
 	defer rows.Close()
 
@@ -54,7 +57,7 @@ func ObtenerHorarios(c *fiber.Ctx) error {
 			lista = append(lista, h)
 		}
 	}
-	return c.JSON(lista)
+	return utils.Responder(c, "01", modHor, "horario-service", lista)
 }
 
 func ObtenerHorarioPorID(c *fiber.Ctx) error {
@@ -62,7 +65,7 @@ func ObtenerHorarioPorID(c *fiber.Ctx) error {
 		ID int `json:"id_horario"`
 	}
 	if err := c.BodyParser(&body); err != nil || body.ID == 0 {
-		return c.Status(400).JSON(fiber.Map{"error": "ID inválido"})
+		return utils.Responder(c, "02", modHor, "horario-service", nil, "ID inválido")
 	}
 
 	var h models.Horario
@@ -71,15 +74,15 @@ func ObtenerHorarioPorID(c *fiber.Ctx) error {
 		body.ID).Scan(&h.ID, &h.IDConsultorio, &h.Turno, &h.IDEmpleado)
 
 	if err != nil {
-		return c.Status(404).JSON(fiber.Map{"error": "Horario no encontrado"})
+		return utils.Responder(c, "05", modHor, "horario-service", nil, "Horario no encontrado")
 	}
-	return c.JSON(h)
+	return utils.Responder(c, "01", modHor, "horario-service", h)
 }
 
 func ActualizarHorario(c *fiber.Ctx) error {
 	var h models.Horario
 	if err := c.BodyParser(&h); err != nil || h.ID == 0 {
-		return c.Status(400).JSON(fiber.Map{"error": "Datos inválidos"})
+		return utils.Responder(c, "02", modHor, "horario-service", nil, "Datos inválidos")
 	}
 
 	var actual models.Horario
@@ -87,7 +90,7 @@ func ActualizarHorario(c *fiber.Ctx) error {
 		"SELECT id_consultorio, turno, id_empleado FROM Horarios WHERE id_horario=$1", h.ID,
 	).Scan(&actual.IDConsultorio, &actual.Turno, &actual.IDEmpleado)
 	if err != nil {
-		return c.Status(404).JSON(fiber.Map{"error": "Horario no encontrado"})
+		return utils.Responder(c, "05", modHor, "horario-service", nil, "Horario no encontrado")
 	}
 
 	if h.IDConsultorio == 0 {
@@ -105,13 +108,13 @@ func ActualizarHorario(c *fiber.Ctx) error {
 	var consExists bool
 	err = config.DB.QueryRow("SELECT EXISTS(SELECT 1 FROM Consultorios WHERE id_consultorio=$1)", h.IDConsultorio).Scan(&consExists)
 	if err != nil || !consExists {
-		return c.Status(400).JSON(fiber.Map{"error": "El consultorio no existe"})
+		return utils.Responder(c, "02", modHor, "horario-service", nil, "Consultorio no existe")
 	}
 
 	var empExists bool
 	err = config.DB.QueryRow("SELECT EXISTS(SELECT 1 FROM Empleado WHERE id_empleado=$1)", h.IDEmpleado).Scan(&empExists)
 	if err != nil || !empExists {
-		return c.Status(400).JSON(fiber.Map{"error": "El empleado no existe"})
+		return utils.Responder(c, "02", modHor, "horario-service", nil, "Empleado no existe")
 	}
 
 	_, err = config.DB.Exec(
@@ -119,10 +122,10 @@ func ActualizarHorario(c *fiber.Ctx) error {
 		h.IDConsultorio, h.Turno, h.IDEmpleado, h.ID,
 	)
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": "Error al actualizar horario: " + err.Error()})
+		return utils.Responder(c, "06", modHor, "horario-service", nil, "Error al actualizar horario: "+err.Error())
 	}
 
-	return c.JSON(fiber.Map{"mensaje": "Horario actualizado correctamente"})
+	return utils.Responder(c, "01", modHor, "horario-service", fiber.Map{"mensaje": "Horario actualizado correctamente"})
 }
 
 
@@ -131,12 +134,12 @@ func EliminarHorario(c *fiber.Ctx) error {
 		ID int `json:"id_horario"`
 	}
 	if err := c.BodyParser(&body); err != nil || body.ID == 0 {
-		return c.Status(400).JSON(fiber.Map{"error": "ID inválido"})
+		return utils.Responder(c, "02", modHor, "horario-service", nil, "ID inválido")
 	}
 
 	_, err := config.DB.Exec("DELETE FROM Horarios WHERE id_horario=$1", body.ID)
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": "Error al eliminar horario"})
+		return utils.Responder(c, "06", modHor, "horario-service", nil, "Error al eliminar horario")
 	}
-	return c.JSON(fiber.Map{"mensaje": "Horario eliminado"})
+	return utils.Responder(c, "01", modHor, "horario-service", fiber.Map{"mensaje": "Horario eliminado"})
 }

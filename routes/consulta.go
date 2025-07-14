@@ -8,11 +8,11 @@ import (
 )
 
 func ConsultasRoutes(app fiber.Router) {
-	consultas := app.Group("/consultas", middleware.JWTProtected("empleado", "paciente"))
+	consultas := app.Group("/consultas")
 
-	consultas.Post("/", handlers.AgendarConsulta)
-	consultas.Get("/", handlers.ObtenerConsultas)
-	consultas.Post("/getConsl", handlers.ObtenerConsultaPorID)
+	consultas.Post("/",middleware.JWTProtected("solicitar_cita"), handlers.AgendarConsulta)
+	consultas.Get("/",middleware.JWTProtected("ver_citas"), handlers.ObtenerConsultas)
+	consultas.Post("/getConsl",middleware.JWTProtected("ver_citas"), handlers.ObtenerConsultaPorID)
 	consultas.Put("/update", handlers.ActualizarConsulta)
 	consultas.Delete("/delete", handlers.EliminarConsulta)
 }

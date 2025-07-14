@@ -8,26 +8,26 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-
+const modConsul = "Consul"
 
 func AgendarConsulta(c *fiber.Ctx) error {
 	var cons models.Consulta
 	if err := c.BodyParser(&cons); err != nil {
-		return c.Status(400).JSON(fiber.Map{"error": "Datos inválidos"})
+		return utils.Responder(c, "02", modConsul, "consulta-service", nil, "Datos inválidos")
 	}
 
 	if err := utils.ValidarConsulta(cons); err != nil {
-		return c.Status(400).JSON(fiber.Map{"error": err.Error()})
+		return utils.Responder(c, "02", modConsul, "consulta-service", nil, err.Error())
 	}
 
 	if !utils.ExisteID("Paciente", "id_paciente", cons.IDPaciente) {
-		return c.Status(400).JSON(fiber.Map{"error": "ID de paciente no válido"})
+		return utils.Responder(c, "02", modConsul, "consulta-service", nil, "ID de paciente no válido")
 	}
 	if !utils.ExisteID("Horarios", "id_horario", cons.IDHorario) {
-		return c.Status(400).JSON(fiber.Map{"error": "ID de horario no válido"})
+		return utils.Responder(c, "02", modConsul, "consulta-service", nil, "ID de horario no válido")
 	}
 	if !utils.ExisteID("Consultorios", "id_consultorio", cons.IDConsultorio) {
-		return c.Status(400).JSON(fiber.Map{"error": "ID de consultorio no válido"})
+		return utils.Responder(c, "02", modConsul, "consulta-service", nil, "ID de consultorio no válido")
 	}
 
 	err := config.DB.QueryRow(`
@@ -35,17 +35,18 @@ func AgendarConsulta(c *fiber.Ctx) error {
 		VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id_consulta`,
 		cons.IDPaciente, cons.Tipo, cons.IDReceta, cons.IDHorario, cons.IDConsultorio, cons.Diagnostico, cons.Costo, cons.FechaHora,
 	).Scan(&cons.ID)
+
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": "Error al agendar consulta: " + err.Error()})
+		return utils.Responder(c, "06", modConsul, "consulta-service", nil, "Error al agendar consulta: "+err.Error())
 	}
-	return c.Status(201).JSON(cons)
+
+	return utils.Responder(c, "01", modConsul, "consulta-service", cons)
 }
 
 func ObtenerConsultas(c *fiber.Ctx) error {
 	rows, err := config.DB.Query(`SELECT id_consulta, id_paciente, tipo, id_receta, id_horario, id_consultorio, diagnostico, costo, fecha_hora FROM Consultas`) 
-
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": "Error al obtener consultas"})
+		return utils.Responder(c, "06", modConsul, "consulta-service", nil, "Error al obtener consultas")
 	}
 	defer rows.Close()
 
@@ -56,16 +57,16 @@ func ObtenerConsultas(c *fiber.Ctx) error {
 			consultas = append(consultas, cons)
 		}
 	}
-	return c.JSON(consultas)
+
+	return utils.Responder(c, "01", modConsul, "consulta-service", consultas)
 }
 
 func ObtenerConsultaPorID(c *fiber.Ctx) error {
 	var body struct {
 		ID int `json:"id_consulta"`
 	}
-
 	if err := c.BodyParser(&body); err != nil || body.ID == 0 {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "ID inválido"})
+		return utils.Responder(c, "02", modConsul, "consulta-service", nil, "ID inválido")
 	}
 
 	var cons models.Consulta
@@ -75,27 +76,28 @@ func ObtenerConsultaPorID(c *fiber.Ctx) error {
 	).Scan(&cons.ID, &cons.IDPaciente, &cons.Tipo, &cons.IDReceta, &cons.IDHorario, &cons.IDConsultorio, &cons.Diagnostico, &cons.Costo, &cons.FechaHora)
 
 	if err == sql.ErrNoRows {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Consulta no encontrada"})
+		return utils.Responder(c, "05", modConsul, "consulta-service", nil, "Consulta no encontrada")
 	} else if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Error al buscar consulta"})
+		return utils.Responder(c, "06", modConsul, "consulta-service", nil, "Error al buscar consulta")
 	}
 
-	return c.JSON(cons)
+	return utils.Responder(c, "01", modConsul, "consulta-service", cons)
 }
 
 func ActualizarConsulta(c *fiber.Ctx) error {
 	var cons models.Consulta
 	if err := c.BodyParser(&cons); err != nil || cons.ID == 0 {
-		return c.Status(400).JSON(fiber.Map{"error": "Datos inválidos"})
+		return utils.Responder(c, "02", modConsul, "consulta-service", nil, "Datos inválidos")
 	}
 
 	var actual models.Consulta
 	err := config.DB.QueryRow(`SELECT id_paciente, tipo, id_receta, id_horario, id_consultorio, diagnostico, costo, fecha_hora FROM Consultas WHERE id_consulta=$1`, cons.ID).
 		Scan(&actual.IDPaciente, &actual.Tipo, &actual.IDReceta, &actual.IDHorario, &actual.IDConsultorio, &actual.Diagnostico, &actual.Costo, &actual.FechaHora)
+	
 	if err == sql.ErrNoRows {
-		return c.Status(404).JSON(fiber.Map{"error": "Consulta no encontrada"})
+		return utils.Responder(c, "05", modConsul, "consulta-service", nil, "Consulta no encontrada")
 	} else if err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": "Error al buscar consulta"})
+		return utils.Responder(c, "06", modConsul, "consulta-service", nil, "Error al buscar consulta")
 	}
 
 	if cons.IDPaciente == 0 {
@@ -127,9 +129,10 @@ func ActualizarConsulta(c *fiber.Ctx) error {
 		cons.IDPaciente, cons.Tipo, cons.IDReceta, cons.IDHorario, cons.IDConsultorio, cons.Diagnostico, cons.Costo, cons.FechaHora, cons.ID,
 	)
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": "Error al actualizar consulta"})
+		return utils.Responder(c, "06", modConsul, "consulta-service", nil, "Error al actualizar consulta")
 	}
-	return c.JSON(fiber.Map{"mensaje": "Consulta actualizada"})
+
+	return utils.Responder(c, "01", modConsul, "consulta-service", fiber.Map{"mensaje": "Consulta actualizada"})
 }
 
 func EliminarConsulta(c *fiber.Ctx) error {
@@ -137,12 +140,12 @@ func EliminarConsulta(c *fiber.Ctx) error {
 		ID int `json:"id_consulta"`
 	}
 	if err := c.BodyParser(&body); err != nil || body.ID == 0 {
-		return c.Status(400).JSON(fiber.Map{"error": "ID inválido"})
+		return utils.Responder(c, "02", modConsul, "consulta-service", nil, "ID inválido")
 	}
 
 	_, err := config.DB.Exec("DELETE FROM Consultas WHERE id_consulta=$1", body.ID)
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": "Error al eliminar consulta"})
+		return utils.Responder(c, "06", modConsul, "consulta-service", nil, "Error al eliminar consulta")
 	}
-	return c.JSON(fiber.Map{"mensaje": "Consulta eliminada"})
+	return utils.Responder(c, "01", modConsul, "consulta-service", fiber.Map{"mensaje": "Consulta eliminada"})
 }

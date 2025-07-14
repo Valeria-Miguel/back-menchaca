@@ -7,7 +7,7 @@ import (
 )
 
 func SetupEmpleadoRoutes(app fiber.Router) {
-	empleado := app.Group("/empleados", middleware.JWTProtected("empleado"))
+	empleado := app.Group("/empleados", middleware.JWTProtected("paciente"))
 
 	empleado.Post("/", handlers.CrearEmpleado)
 	empleado.Get("/get", handlers.ObtenerEmpleados)

@@ -2,25 +2,26 @@ package handlers
 
 import (
 	"database/sql"
-	"net/http"
-	"strings"
 
+	"strings"
 	"github.com/gofiber/fiber/v2"
 	"back-menchaca/config"
 	"back-menchaca/models"
 	"back-menchaca/utils"
 )
 
+const modEmpl = "EMPL"
 func CrearEmpleado(c *fiber.Ctx) error {
 	var e models.Empleado
 
 	if err := c.BodyParser(&e); err != nil {
-		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Datos inválidos"})
+		return utils.Responder(c, "02", modEmpl, "empleado-service", nil, "Datos inválidos")
 	}
 
 	if err := utils.ValidarEmpleado(e.Nombre, e.Appaterno, e.Tipo, e.Area, e.Correo, e.Contrasena); err != nil {
-		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+		return utils.Responder(c, "02", modEmpl, "empleado-service", nil, err.Error())
 	}
+
 	e.Nombre = utils.SanitizarInput(e.Nombre)
 	e.Appaterno = utils.SanitizarInput(e.Appaterno)
 	e.Apmaterno = utils.SanitizarInput(e.Apmaterno)
@@ -31,15 +32,15 @@ func CrearEmpleado(c *fiber.Ctx) error {
 	var count int
 	err := config.DB.QueryRow("SELECT COUNT(*) FROM Empleado WHERE correo = $1", e.Correo).Scan(&count)
 	if err != nil {
-		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Error al verificar correo"})
+		return utils.Responder(c, "06", modEmpl, "empleado-service", nil, "Error al verificar correo")
 	}
 	if count > 0 {
-		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "El correo ya está registrado"})
+		return utils.Responder(c, "07", modEmpl, "empleado-service", nil, "El correo ya está registrado")
 	}
 
 	hashed, err := utils.HashPassword(e.Contrasena)
 	if err != nil {
-		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Error al encriptar contraseña"})
+		return utils.Responder(c, "06", modEmpl, "empleado-service", nil, "Error al encriptar contraseña")
 	}
 
 	err = config.DB.QueryRow(
@@ -47,21 +48,18 @@ func CrearEmpleado(c *fiber.Ctx) error {
 		 VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id_empleado`,
 		e.Nombre, e.Appaterno, e.Apmaterno, e.Tipo, e.Area, e.Correo, hashed,
 	).Scan(&e.ID)
-	
 	if err != nil {
-		
-		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
-        "error": "Error al registrar empleado: " + err.Error(),
-    })
+		return utils.Responder(c, "06", modEmpl, "empleado-service", nil, "Error al registrar empleado: "+err.Error())
 	}
+
 	e.Contrasena = ""
-	return c.Status(http.StatusCreated).JSON(e)
+	return utils.Responder(c, "01", modEmpl, "empleado-service", e)
 }
 
 func ObtenerEmpleados(c *fiber.Ctx) error {
 	rows, err := config.DB.Query("SELECT id_empleado, nombre, appaterno, apmaterno, tipo_empleado, area, correo FROM Empleado")
 	if err != nil {
-		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Error al obtener empleados"})
+		return utils.Responder(c, "06", modEmpl, "empleado-service", nil, "Error al obtener empleados")
 	}
 	defer rows.Close()
 
@@ -72,7 +70,7 @@ func ObtenerEmpleados(c *fiber.Ctx) error {
 			empleados = append(empleados, e)
 		}
 	}
-	return c.JSON(empleados)
+	return utils.Responder(c, "01", modEmpl, "empleado-service", empleados)
 }
 
 func ObtenerEmpleadoPorID(c *fiber.Ctx) error {
@@ -80,7 +78,7 @@ func ObtenerEmpleadoPorID(c *fiber.Ctx) error {
 		ID int `json:"id_empleado"`
 	}
 	if err := c.BodyParser(&body); err != nil || body.ID == 0 {
-		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "ID inválido"})
+		return utils.Responder(c, "02", modEmpl, "empleado-service", nil, "ID inválido")
 	}
 
 	var e models.Empleado
@@ -91,18 +89,17 @@ func ObtenerEmpleadoPorID(c *fiber.Ctx) error {
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": "Empleado no encontrado"})
+			return utils.Responder(c, "05", modEmpl, "empleado-service", nil, "Empleado no encontrado")
 		}
-		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Error al buscar empleado"})
+		return utils.Responder(c, "06", modEmpl, "empleado-service", nil, "Error al buscar empleado")
 	}
-
-	return c.JSON(e)
+	return utils.Responder(c, "01", modEmpl, "empleado-service", e)
 }
 
 func ActualizarEmpleado(c *fiber.Ctx) error {
 	var e models.Empleado
 	if err := c.BodyParser(&e); err != nil || e.ID == 0 {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Datos inválidos"})
+		return utils.Responder(c, "02", modEmpl, "empleado-service", nil, "Datos inválidos")
 	}
 
 	var current models.Empleado
@@ -110,7 +107,7 @@ func ActualizarEmpleado(c *fiber.Ctx) error {
 		"SELECT nombre, appaterno, apmaterno, tipo_empleado, area, correo FROM Empleado WHERE id_empleado = $1", e.ID,
 	).Scan(&current.Nombre, &current.Appaterno, &current.Apmaterno, &current.Tipo, &current.Area, &current.Correo)
 	if err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Empleado no encontrado"})
+		return utils.Responder(c, "05", modEmpl, "empleado-service", nil, "Empleado no encontrado")
 	}
 
 	if e.Nombre == "" {
@@ -145,10 +142,10 @@ func ActualizarEmpleado(c *fiber.Ctx) error {
 		e.Nombre, e.Appaterno, e.Apmaterno, e.Tipo, e.Area, e.Correo, e.ID,
 	)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Error al actualizar empleado"})
+		return utils.Responder(c, "06", modEmpl, "empleado-service", nil, "Error al actualizar empleado")
 	}
 
-	return c.JSON(fiber.Map{"mensaje": "Empleado actualizado"})
+	return utils.Responder(c, "01", modEmpl, "empleado-service", fiber.Map{"mensaje": "Empleado actualizado"})
 }
 
 
@@ -157,12 +154,13 @@ func EliminarEmpleado(c *fiber.Ctx) error {
 		ID int `json:"id_empleado"`
 	}
 	if err := c.BodyParser(&body); err != nil || body.ID == 0 {
-		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "ID inválido"})
+		return utils.Responder(c, "02", modEmpl, "empleado-service", nil, "ID inválido")
 	}
 
 	_, err := config.DB.Exec("DELETE FROM Empleado WHERE id_empleado = $1", body.ID)
 	if err != nil {
-		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Error al eliminar empleado" + err.Error(),})
+		return utils.Responder(c, "06", modEmpl, "empleado-service", nil, "Error al eliminar empleado: "+err.Error())
 	}
-	return c.JSON(fiber.Map{"mensaje": "Empleado eliminado"})
+
+	return utils.Responder(c, "01", modEmpl, "empleado-service", fiber.Map{"mensaje": "Empleado eliminado"})
 }

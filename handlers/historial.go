@@ -8,21 +8,23 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+const modHis = "HIST"
+
 func CrearHistorialClinico(c *fiber.Ctx) error {
 	var h models.HistorialClinico
 	if err := c.BodyParser(&h); err != nil {
-		return c.Status(400).JSON(fiber.Map{"error": "Datos inválidos"})
+		return utils.Responder(c, "02", modHis, "historial-service", nil, "Datos inválidos")
 	}
 
 	if h.IDExpediente == 0 || h.IDConsulta == 0 {
-		return c.Status(400).JSON(fiber.Map{"error": "Faltan campos obligatorios"})
+		return utils.Responder(c, "02", modHis, "historial-service", nil, "Faltan campos obligatorios")
 	}
 
 	if !utils.ExisteIDHisotial("Expediente", "id_expediente", h.IDExpediente) {
-		return c.Status(400).JSON(fiber.Map{"error": "ID de expediente no válido"})
+		return utils.Responder(c, "02", modHis, "historial-service", nil, "ID de expediente no válido")
 	}
 	if !utils.ExisteIDHisotial("Consultas", "id_consulta", h.IDConsulta) {
-		return c.Status(400).JSON(fiber.Map{"error": "ID de consulta no válido"})
+		return utils.Responder(c, "02", modHis, "historial-service", nil, "ID de consulta no válido")
 	}
 
 	err := config.DB.QueryRow(`
@@ -31,15 +33,15 @@ func CrearHistorialClinico(c *fiber.Ctx) error {
 		h.IDExpediente, h.IDConsulta,
 	).Scan(&h.ID)
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": "Error al crear historial clínico"})
+		return utils.Responder(c, "06", modHis, "historial-service", nil, "Error al crear historial clínico")
 	}
-	return c.Status(201).JSON(h)
+	return utils.Responder(c, "01", modHis, "historial-service", h)
 }
 
 func ObtenerHistorialesClinicos(c *fiber.Ctx) error {
 	rows, err := config.DB.Query("SELECT id_historial, id_expediente, id_consultas FROM Historial_Clinico")
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": "Error al obtener historiales"})
+		return utils.Responder(c, "06", modHis, "historial-service", nil, "Error al obtener historiales")
 	}
 	defer rows.Close()
 
@@ -50,7 +52,7 @@ func ObtenerHistorialesClinicos(c *fiber.Ctx) error {
 			historiales = append(historiales, h)
 		}
 	}
-	return c.JSON(historiales)
+	return utils.Responder(c, "01", modHis, "historial-service", historiales)
 }
 
 func ObtenerHistorialClinicoPorID(c *fiber.Ctx) error {
@@ -59,7 +61,7 @@ func ObtenerHistorialClinicoPorID(c *fiber.Ctx) error {
 	}
 
 	if err := c.BodyParser(&body); err != nil || body.ID == 0 {
-		return c.Status(400).JSON(fiber.Map{"error": "ID inválido"})
+		return utils.Responder(c, "02", modHis, "historial-service", nil, "ID inválido")
 	}
 
 	var h models.HistorialClinico
@@ -67,26 +69,28 @@ func ObtenerHistorialClinicoPorID(c *fiber.Ctx) error {
 		"SELECT id_historial, id_expediente, id_consultas FROM Historial_Clinico WHERE id_historial = $1",
 		body.ID).Scan(&h.ID, &h.IDExpediente, &h.IDConsulta)
 
-	if err != nil {
-		return c.Status(404).JSON(fiber.Map{"error": "Historial no encontrado"})
+	if err == sql.ErrNoRows {
+		return utils.Responder(c, "05", modHis, "historial-service", nil, "Historial no encontrado")
+	} else if err != nil {
+		return utils.Responder(c, "06", modHis, "historial-service", nil, "Error al buscar historial")
 	}
 
-	return c.JSON(h)
+	return utils.Responder(c, "01", modHis, "historial-service", h)
 }
 
 func ActualizarHistorialClinico(c *fiber.Ctx) error {
 	var h models.HistorialClinico
 	if err := c.BodyParser(&h); err != nil || h.ID == 0 {
-		return c.Status(400).JSON(fiber.Map{"error": "Datos inválidos"})
+		return utils.Responder(c, "02", modHis, "historial-service", nil, "Datos inválidos")
 	}
 
 	var actual models.HistorialClinico
 	err := config.DB.QueryRow("SELECT id_expediente, id_consultas FROM Historial_Clinico WHERE id_historial = $1", h.ID).
 		Scan(&actual.IDExpediente, &actual.IDConsulta)
 	if err == sql.ErrNoRows {
-		return c.Status(404).JSON(fiber.Map{"error": "Historial no encontrado"})
+		return utils.Responder(c, "05", modHis, "historial-service", nil, "Historial no encontrado")
 	} else if err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": "Error al buscar historial"})
+		return utils.Responder(c, "06", modHis, "historial-service", nil, "Error al buscar historial")
 	}
 
 	if h.IDExpediente == 0 {
@@ -101,9 +105,9 @@ func ActualizarHistorialClinico(c *fiber.Ctx) error {
 		h.IDExpediente, h.IDConsulta, h.ID,
 	)
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": "Error al actualizar historial clínico"})
+		return utils.Responder(c, "06", modHis, "historial-service", nil, "Error al actualizar historial clínico")
 	}
-	return c.JSON(fiber.Map{"mensaje": "Historial actualizado"})
+	return utils.Responder(c, "01", modHis, "historial-service", fiber.Map{"mensaje": "Historial actualizado"})
 }
 
 func EliminarHistorialClinico(c *fiber.Ctx) error {
@@ -111,12 +115,12 @@ func EliminarHistorialClinico(c *fiber.Ctx) error {
 		ID int `json:"id_historial"`
 	}
 	if err := c.BodyParser(&body); err != nil || body.ID == 0 {
-		return c.Status(400).JSON(fiber.Map{"error": "ID inválido"})
+		return utils.Responder(c, "02", modHis, "historial-service", nil, "ID inválido")
 	}
 
 	_, err := config.DB.Exec("DELETE FROM Historial_Clinico WHERE id_historial = $1", body.ID)
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": "Error al eliminar historial clínico"})
+		return utils.Responder(c, "06", modHis, "historial-service", nil, "Error al eliminar historial clínico")
 	}
-	return c.JSON(fiber.Map{"mensaje": "Historial eliminado"})
+	return utils.Responder(c, "01", modHis, "historial-service", fiber.Map{"mensaje": "Historial eliminado"})
 }

@@ -3,6 +3,9 @@
 Todas las modificaciones importantes de este proyecto se documentan aqui
 
 ---
+## [1.1] - 01-07-28
+
+
 
 ## [1.0] - 2025-06-28
 

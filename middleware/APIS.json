@@ -1,0 +1,353 @@
+APIS 
+{post login http://127.0.0.1:3000/api/auth/login
+{
+  "nombre": "Juan",
+  "appaterno": "Pérez",
+  "apmaterno": "López",
+  "correo": "juan@example.com",
+  "contrasena": "Hola123!"
+}
+repsuesta
+{
+  "rol": "paciente",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Imp1YW5AZXhhbXBsZS5jb20iLCJleHAiOjE3NTExMzEzNDEsInJvbCI6InBhY2llbnRlIn0.PYxZH0ModyEaOx0vLaZT9-Uufbk9wHsYHIA-aztmIVo"
+}}
+
+{
+  "correo": "sara@example.com",
+  "contrasena": "Hola123!"
+}
+
+refresh 
+http://localhost:3000/api/auth/refresh
+{
+  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InNhcmFAZXhhbXBsZS5jb20iLCJleHAiOjE3NTIwMTE4MDQsInJvbCI6InBhY2llbnRlIn0.W-A1c30Bt3mrTi0Ga0xq16OzXNWGxAb_ljsqZi66Fp4"
+}
+
+respuesta
+post registro 
+{    http://127.0.0.1:3000/api/pacientes
+    {
+    "nombre": "Juan",
+    "appaterno": "Pérez",
+    "apmaterno": "López",
+    "correo": "sara@example.com",
+    "contrasena": "Hola123!"
+    }
+    respuesta 
+    {
+    "id_paciente": 3,
+    "nombre": "Juan",
+    "appaterno": "Pérez",
+    "apmaterno": "López",
+    "correo": "sara@example.com"
+    }
+    -----------cOn token
+    get http://127.0.0.1:3000/api/pacientes/get
+    respuesta
+    [
+    {
+        "id_paciente": 2,
+        "nombre": "Juan",
+        "appaterno": "Pérez",
+        "apmaterno": "López",
+        "correo": "juan@example.com"
+    },
+    {
+        "id_paciente": 3,
+        "nombre": "Juan",
+        "appaterno": "Pérez",
+        "apmaterno": "López",
+        "correo": "sara@example.com"
+    }
+    ]
+    post http://127.0.0.1:3000/api/pacientes/getpaciente
+    {
+    "id_paciente": 3
+    }
+    Respuesta
+    {
+    "id_paciente": 3,
+    "nombre": "Juan",
+    "appaterno": "Pérez",
+    "apmaterno": "López",
+    "correo": "sara@example.com"
+    }
+    put http://127.0.0.1:3000/api/pacientes/update
+    {
+    "id_paciente": 3,
+    "apmaterno": "Martinez"
+    }
+    respuesta
+    {
+    "mensaje": "Paciente actualizado"
+    }
+    Delete 
+    http://127.0.0.1:3000/api/pacientes/delete
+    {
+    "id_paciente":2
+    }
+    respuesta
+    {
+    "mensaje": "Paciente eliminado"
+    }
+}
+----------Api Empleados
+{    post http://127.0.0.1:3000/api/empleados/
+    {
+    "nombre": "Juan",
+    "appaterno": "Pérez",
+    "apmaterno": "López*",
+    "tipo_empleado": "doctor",
+    "area": "Urgencias",
+    "correo": "juan.perez@hospital.com",
+    "contrasena": "ContraseñaSegura1!"
+    }
+    respuesta
+    {
+    "id_empleado": 2,
+    "nombre": "Juan",
+    "appaterno": "Pérez",
+    "apmaterno": "López*",
+    "tipo_empleado": "doctor",
+    "area": "Urgencias",
+    "correo": "sol.perez@hospital.com"
+    }
+    get http://127.0.0.1:3000/api/empleados/get
+    respuesta 
+    [
+    {
+        "id_empleado": 1,
+        "nombre": "Juan",
+        "appaterno": "Pérez",
+        "apmaterno": "López",
+        "tipo_empleado": "doctor",
+        "area": "Urgencias",
+        "correo": "juan.perez@hospital.com"
+    },
+    {
+        "id_empleado": 2,
+        "nombre": "Juan",
+        "appaterno": "Pérez",
+        "apmaterno": "López*",
+        "tipo_empleado": "doctor",
+        "area": "Urgencias",
+        "correo": "sol.perez@hospital.com"
+    }
+    ]
+    Post http://127.0.0.1:3000/api/empleados/getempleado
+    {
+        "id_empleado": 2
+    }
+    respuesta
+    {
+    "id_empleado": 2,
+    "nombre": "Juan",
+    "appaterno": "Pérez",
+    "apmaterno": "López*",
+    "tipo_empleado": "doctor",
+    "area": "Urgencias",
+    "correo": "sol.perez@hospital.com"
+    }
+    Put http://127.0.0.1:3000/api/empleados/update
+    {
+    "id_empleado": 1,
+    "nombre": "Juan Carlos",
+    "area": "Consulta Externa"
+    }
+    respuesta
+    {
+    "mensaje": "Empleado actualizado"
+    }
+    delete http://127.0.0.1:3000/api/empleados/delete
+    {
+    "id_empleado": 1
+    }
+    respuesta 
+    {
+    "mensaje": "Empleado eliminado"
+    }}
+
+---------------Api consultorios
+{    POST http://127.0.0.1:3000/api/consultorios
+    {
+    "nombre": "Consultorio B",
+    "tipo": "General"
+    }
+    Responde
+    {
+    "id_consultorio": 2,
+    "tipo": "General",
+    "nombre": "Consultorio B"
+    }
+    get http://127.0.0.1:3000/api/consultorios/get
+    [
+    {
+        "id_consultorio": 1,
+        "tipo": "General",
+        "nombre": "Consultorio A"
+    },
+    {
+        "id_consultorio": 2,
+        "tipo": "General",
+        "nombre": "Consultorio B"
+    }
+    ]
+    post http://127.0.0.1:3000/api/consultorios/getconsultorio
+    {
+    "id_consultorio": 1
+
+    }
+    {
+    "id_consultorio": 1,
+    "tipo": "General",
+    "nombre": "Consultorio A"
+    }
+
+    put http://127.0.0.1:3000/api/consultorios/update
+    {
+    "id_consultorio": 1,
+    "tipo": "genrea B"
+    }
+    respuesta 
+    {
+    "mensaje": "Consultorio actualizado"
+    }
+    delete http://127.0.0.1:3000/api/consultorios/delete
+    {
+    "id_consultorio": 1
+    }
+    respuesta
+    {
+    "mensaje": "Consultorio eliminado"
+    }}
+
+-------------------horarios Api horarios
+{    post http://127.0.0.1:3000/api/horarios/create
+    {
+    "id_consultorio":2,
+    "turno": "matutino",
+    "id_empleado":2
+    }
+    respuetsa
+    {
+    "id_horario": 3,
+    "id_consultorio": 2,
+    "turno": "matutino",
+    "id_empleado": 2
+    }
+
+    get http://127.0.0.1:3000/api/horarios/get
+    respuesta 
+    [
+    {
+        "id_horario": 3,
+        "id_consultorio": 2,
+        "turno": "matutino",
+        "id_empleado": 2
+    },
+    {
+        "id_horario": 4,
+        "id_consultorio": 2,
+        "turno": "matutino",
+        "id_empleado": 2
+    }
+    ]
+    post http://127.0.0.1:3000/api/horarios/gethorario
+    {
+    "id_horario":3
+
+    }
+    respuesta 
+    {
+    "id_horario": 3,
+    "id_consultorio": 2,
+    "turno": "matutino",
+    "id_empleado": 2
+    }
+    update http://127.0.0.1:3000/api/horarios/update
+    {
+    "id_horario": 3,
+    "turno": "vespertino"
+    }
+    respuesta
+    {
+    "mensaje": "Horario actualizado correctamente"
+    }
+    delte http://127.0.0.1:3000/api/horarios/delete
+    {
+    "id_horario": 3
+    }
+    respuesta 
+    {
+    "mensaje": "Horario eliminado"
+    }
+}
+-----consultas 
+
+
+
+----antecedentes 
+{    get http://127.0.0.1:3000/api/antecedentes/get
+    respuesta 
+    [
+    {
+        "id_antecedente": 1,
+        "id_expediente": 1,
+        "diagnostico": "Hipertensión arterial",
+        "descripcion": "Paciente con presión alta recurrente.",
+        "fecha": "2024-06-28T00:00:00Z"
+    },
+    {
+        "id_antecedente": 2,
+        "id_expediente": 1,
+        "diagnostico": "Hipertensión arterial",
+        "descripcion": "Paciente con presión alta recurrente.",
+        "fecha": "2024-06-28T00:00:00Z"
+    }
+    ]
+
+    post http://127.0.0.1:3000/api/antecedentes/
+    {
+    "id_expediente": 1,
+    "diagnostico": "Hipertensión arterial",
+    "descripcion": "Paciente con presión alta recurrente.",
+    "fecha": "2024-06-28T00:00:00Z"
+    }
+    respuesta 
+    {
+    "id_antecedente": 3,
+    "id_expediente": 1,
+    "diagnostico": "Hipertensión arterial",
+    "descripcion": "Paciente con presión alta recurrente.",
+    "fecha": "2024-06-28T00:00:00Z"
+    }
+    post only http://127.0.0.1:3000/api/antecedentes/getant
+    {
+    "id_antecedente": 3
+    }
+    respuesta
+    {
+    "id_antecedente": 3,
+    "id_expediente": 1,
+    "diagnostico": "Hipertensión arterial",
+    "descripcion": "Paciente con presión alta recurrente.",
+    "fecha": "2024-06-28T00:00:00Z"
+    }
+    put http://127.0.0.1:3000/api/antecedentes/update
+    {
+    "id_antecedente": 3,
+    "diagnostico": "Hipertensión arterial xxx"
+    }
+    respuesta 
+    {
+    "mensaje": "Antecedente actualizado"
+    }
+    delete http://127.0.0.1:3000/api/antecedentes/delete
+    {
+    "id_antecedente": 3
+    }
+    respuesta 
+    {
+    "mensaje": "Antecedente eliminado"
+    }}

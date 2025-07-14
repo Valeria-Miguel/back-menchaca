@@ -75,22 +75,18 @@ func ValidarContrasena(pw string) error {
     return nil
 }
 func ValidarPaciente(p models.Paciente) error {
-    // Validar nombre
     if strings.TrimSpace(p.Nombre) == "" {
         return errors.New("El nombre es requerido")
     }
     
-    // Validar apellido paterno
     if strings.TrimSpace(p.Appaterno) == "" {
         return errors.New("El apellido paterno es requerido")
     }
     
-    // Validar correo
     if !isValidEmail(p.Correo) {
         return errors.New("El correo electrónico no es válido")
     }
     
-    // Validar contraseña
     if err := ValidarContrasena(p.Contrasena); err != nil {
         return err
     }

@@ -1,22 +1,20 @@
 package middleware
 
 import (
-	"os"
-	"strings"
-
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
+	"os"
+	"strings"
 )
 
-func JWTProtected(allowedRoles ...string) fiber.Handler {
+func JWTProtected(requiredPerms ...string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		auth := c.Get("Authorization")
 		if auth == "" || !strings.HasPrefix(auth, "Bearer ") {
 			return c.Status(401).JSON(fiber.Map{
 				"statusCode": 401,
-				"intCode": "A01",
-				"message": "Token requerido",
-				"from": "auth-service",
+				"message":    "Token requerido",
+				"from":       "auth-service",
 			})
 		}
 
@@ -28,35 +26,48 @@ func JWTProtected(allowedRoles ...string) fiber.Handler {
 		if err != nil || !token.Valid {
 			return c.Status(401).JSON(fiber.Map{
 				"statusCode": 401,
-				"intCode": "A01",
-				"message": "Token inválido o expirado",
-				"from": "auth-service",
+				"message":    "Token inválido o expirado",
+				"from":       "auth-service",
 			})
 		}
 
-		claims := token.Claims.(jwt.MapClaims)
-		c.Locals("email", claims["email"])
-		c.Locals("rol", claims["rol"])
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok {
+			return c.Status(401).JSON(fiber.Map{
+				"statusCode": 401,
+				"message":    "Claims inválidos",
+			})
+		}
 
-		// Verificar si el rol está permitido
-		if len(allowedRoles) > 0 {
-			userRol := claims["rol"].(string)
-			valid := false
-			for _, r := range allowedRoles {
-				if r == userRol {
-					valid = true
-					break
+		// Obtener permisos desde el token
+		permisosToken := map[string]bool{}
+		if perms, ok := claims["permisos"].([]interface{}); ok {
+			for _, p := range perms {
+				if permStr, ok := p.(string); ok {
+					permisosToken[permStr] = true
 				}
 			}
-			if !valid {
-				return c.Status(403).JSON(fiber.Map{
-					"statusCode": 403,
-					"intCode": "A02",
-					"message": "Acceso denegado",
-					"from": "auth-service",
-				})
+		}
+
+		// Verifica si el usuario tiene al menos uno de los permisos requeridos
+		autorizado := false
+		for _, reqPerm := range requiredPerms {
+			if permisosToken[reqPerm] {
+				autorizado = true
+				break
 			}
 		}
+
+		if !autorizado {
+			return c.Status(403).JSON(fiber.Map{
+				"statusCode": 403,
+				"message":    "Permiso insuficiente",
+			})
+		}
+
+		// Guardar info útil en el contexto
+		c.Locals("email", claims["email"])
+		c.Locals("permisos", permisosToken)
 
 		return c.Next()
 	}
