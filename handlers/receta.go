@@ -63,10 +63,21 @@ func ObtenerRecetaPorID(c *fiber.Ctx) error {
 		return utils.Responder(c, "02", modRec, "receta-service", nil, "ID inválido")
 	}
 
-	var r models.Receta
+	var r struct {
+		ID           int
+		Fecha        string
+		Medicamento  string
+		Dosis        string
+		IDConsultorio int
+		NombreConsultorio string
+	}
+
 	err := config.DB.QueryRow(
-		"SELECT id_receta, fecha, medicamento, dosis, id_consultorio FROM Recetas WHERE id_receta = $1",
-		body.ID).Scan(&r.ID, &r.Fecha, &r.Medicamento, &r.Dosis, &r.IDConsultorio)
+		`SELECT r.id_receta, r.fecha, r.medicamento, r.dosis, r.id_consultorio, c.nombre
+		FROM Recetas r
+		INNER JOIN Consultorios c ON r.id_consultorio = c.id_consultorio
+		WHERE r.id_receta = $1`, 
+		body.ID).Scan(&r.ID, &r.Fecha, &r.Medicamento, &r.Dosis, &r.IDConsultorio, &r.NombreConsultorio)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -77,6 +88,7 @@ func ObtenerRecetaPorID(c *fiber.Ctx) error {
 
 	return utils.Responder(c, "01", modRec, "receta-service", r)
 }
+
 
 
 func ActualizarReceta(c *fiber.Ctx) error {
