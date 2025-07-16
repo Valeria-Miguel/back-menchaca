@@ -4,18 +4,16 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-// Estructura de respuesta unificada
 type APIResponse struct {
-	StatusCode int         // HTTP status code
-	IntCode    string      // Código interno como "S01", "A02"
-	CodeModule string      // Módulo, como "ANT", "EXP", etc.
-	Status     string      // "S", "F", "A", "W"
-	Message    string      // Descripción del resultado
-	Data       interface{} // Datos de respuesta
-	From       string      // Origen
+	StatusCode int         
+	IntCode    string      
+	CodeModule string      
+	Status     string     
+	Message    string      
+	Data       interface{} 
+	From       string     
 }
 
-// Catálogo de respuestas genéricas
 var GenericResponseCatalog = map[string]APIResponse{
 	"01": {StatusCode: fiber.StatusOK, Status: "S01", Message: "Operación realizada exitosamente"},
 	"02": {StatusCode: fiber.StatusBadRequest, Status: "A01", Message: "Datos de entrada inválidos"},

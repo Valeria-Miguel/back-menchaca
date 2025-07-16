@@ -59,6 +59,7 @@ func Login(c *fiber.Ctx) error {
 	}
 
 	var (
+		id string 
 		rol        string
 		hash       string
 		mfaEnabled bool
@@ -67,16 +68,16 @@ func Login(c *fiber.Ctx) error {
 
 	log.Printf("Intentando login con correo: %s", input.Correo)
 
-	// Intentar en empleados
 	err := config.DB.QueryRow(`
-		SELECT tipo_empleado as rol, contraseña, mfa_enabled, mfa_secret 
-		FROM empleado WHERE correo=$1`, input.Correo).Scan(&rol, &hash, &mfaEnabled, &mfaSecret)
+    SELECT id_empleado, tipo_empleado as rol, contraseña, mfa_enabled, mfa_secret 
+    FROM empleado WHERE correo=$1`, input.Correo).Scan(&id, &rol, &hash, &mfaEnabled, &mfaSecret)
 
 	// Si falla, intentar en pacientes
 	if err != nil {
 		err = config.DB.QueryRow(`
-			SELECT 'paciente' as rol, contraseña, mfa_enabled, mfa_secret 
-			FROM paciente WHERE correo=$1`, input.Correo).Scan(&rol, &hash, &mfaEnabled, &mfaSecret)
+			SELECT id_paciente, 'paciente' as rol, contraseña, mfa_enabled, mfa_secret 
+			FROM paciente WHERE correo=$1`, input.Correo).Scan(&id, &rol, &hash, &mfaEnabled, &mfaSecret)
+
 
 		if err != nil {
 			log.Println("Tampoco en paciente:", err)
@@ -205,9 +206,15 @@ if !mfaEnabled {
 			})
 		}
 	}
+	log.Printf("Generando JWT para id: %s, email: %s, rol: %s", id, input.Correo, rol)
+	if id == "" {
+		log.Println("ERROR: id vacío, no se puede generar token")
+		// Maneja error
+	}
 
 	// Generar tokens
-	accessToken, err := utils.GenerateJWT(input.Correo, rol)
+	accessToken, err := utils.GenerateJWT(id, input.Correo, rol)
+	
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"statusCode": fiber.StatusInternalServerError,
@@ -217,7 +224,7 @@ if !mfaEnabled {
 		})
 	}
 
-	refreshToken, err := utils.GenerateRefreshToken(input.Correo, rol)
+	refreshToken, err := utils.GenerateRefreshToken(id, input.Correo, rol)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"statusCode": fiber.StatusInternalServerError,
@@ -327,12 +334,15 @@ func VerifyMFA(c *fiber.Ctx) error {
 
 	// Obtener secreto MFA actual
 	var mfaSecret string
+
+	var id string
 	err = config.DB.QueryRow(`
-		SELECT mfa_secret FROM (
-			SELECT correo, mfa_secret FROM Paciente WHERE correo = $1
+		SELECT id, mfa_secret FROM (
+			SELECT id_paciente as id, correo, mfa_secret FROM Paciente WHERE correo = $1
 			UNION
-			SELECT correo, mfa_secret FROM Empleado WHERE correo = $1
-		) AS usuarios LIMIT 1`, email).Scan(&mfaSecret)
+			SELECT id_empleado as id, correo, mfa_secret FROM Empleado WHERE correo = $1
+		) AS usuarios LIMIT 1`, email).Scan(&id, &mfaSecret)
+
 
 	isNewMFA := false
 	if err != nil || mfaSecret == "" {
@@ -396,7 +406,7 @@ func VerifyMFA(c *fiber.Ctx) error {
 	}
 
 	// Generar tokens finales
-	accessToken, err := utils.GenerateJWT(email, rol)
+	accessToken, err := utils.GenerateJWT(id, email, rol)
 	if err != nil {
 		log.Printf("Error generando access token: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -407,7 +417,7 @@ func VerifyMFA(c *fiber.Ctx) error {
 		})
 	}
 
-	refreshToken, err := utils.GenerateRefreshToken(email, rol)
+	refreshToken, err := utils.GenerateRefreshToken(id, email, rol)
 	if err != nil {
 		log.Printf("Error generando refresh token: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -517,14 +527,15 @@ func RefreshToken(c *fiber.Ctx) error {
 	}
 
 	// Verificar existencia de usuario
-	var exists bool
-	err = config.DB.QueryRow(`
-		SELECT EXISTS(
-			SELECT 1 FROM Empleado WHERE correo=$1
-			UNION
-			SELECT 1 FROM Paciente WHERE correo=$1
-		)`, email).Scan(&exists)
-	if err != nil || !exists {
+	var id string
+		err = config.DB.QueryRow(`
+	SELECT id FROM (
+		SELECT id_paciente AS id, correo FROM paciente WHERE correo = $1
+		UNION
+		SELECT id_empleado AS id, correo FROM empleado WHERE correo = $1
+	) AS usuarios LIMIT 1`, email).Scan(&id)
+
+		if err != nil || id == "" {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"statusCode": fiber.StatusUnauthorized,
 			"intCode":    "A01",
@@ -534,7 +545,7 @@ func RefreshToken(c *fiber.Ctx) error {
 	}
 
 	// Generar nuevo token de acceso
-	newToken, err := utils.GenerateJWT(email, rol)
+	newToken, err := utils.GenerateJWT(id, email, rol)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"statusCode": fiber.StatusInternalServerError,
@@ -558,6 +569,7 @@ func RefreshToken(c *fiber.Ctx) error {
 }
 
 // ActivateMFA genera y activa MFA para un usuario autenticado
+/*
 func ActivateMFA(c *fiber.Ctx) error {
 	userToken, ok := c.Locals("user").(*jwt.Token)
 	if !ok || userToken == nil {
@@ -647,4 +659,4 @@ func ActivateMFA(c *fiber.Ctx) error {
             "qrUrl":  key.URL(),
         },
     })
-}
+}*/

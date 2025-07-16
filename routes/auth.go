@@ -3,7 +3,7 @@ package routes
 import (
 	"github.com/gofiber/fiber/v2"
 	"back-menchaca/handlers"
-	"back-menchaca/middleware"
+	//"back-menchaca/middleware"
 )
 
 func SetupAuthRoutes(app fiber.Router) {
@@ -13,6 +13,6 @@ func SetupAuthRoutes(app fiber.Router) {
 	auth.Post("/verify-mfa", handlers.VerifyMFA)
 	
 	// Nueva ruta para activar MFA
-	auth.Post("/mfa/activate", middleware.JWTProtected(), handlers.ActivateMFA)
+	//auth.Post("/mfa/activate", middleware.JWTProtected(), handlers.ActivateMFA)
 	
 }

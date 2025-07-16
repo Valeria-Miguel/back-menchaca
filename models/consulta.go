@@ -10,6 +10,8 @@ type Consulta struct {
 	IDHorario      int        `json:"id_horario"`
 	IDConsultorio  int        `json:"id_consultorio"`
 	Diagnostico    string     `json:"diagnostico"`
+
+	
 	Costo          float64    `json:"costo"`
 	FechaHora      time.Time  `json:"fecha_hora"`
 }

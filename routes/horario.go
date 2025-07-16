@@ -7,10 +7,10 @@ import (
 )
 
 func SetupHorarioRoutes(app fiber.Router) {
-	horario := app.Group("/horarios", middleware.JWTProtected("empleado"))
+	horario := app.Group("/horarios")
 	
 	horario.Post("/create", handlers.CrearHorario)
-	horario.Get("/get", handlers.ObtenerHorarios)
+	horario.Get("/get",middleware.JWTProtected("solicitar_cita"), handlers.ObtenerHorarios)
 	horario.Post("/gethorario", handlers.ObtenerHorarioPorID)
 	horario.Put("/update", handlers.ActualizarHorario)
 	horario.Delete("/delete", handlers.EliminarHorario)

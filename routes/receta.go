@@ -13,7 +13,7 @@ func SetupRecetasRoutes(app fiber.Router) {
 	rec.Get("/get",middleware.JWTProtected("ver_recetas"), handlers.ObtenerRecetas)
 
 	
-	rec.Post("/recetaget", handlers.ObtenerRecetaPorID)
+	rec.Post("/recetaget", middleware.JWTProtected("solicitar_cita"), handlers.ObtenerRecetaPorID)
 	rec.Put("/update", handlers.ActualizarReceta)
 	rec.Delete("/delete", handlers.EliminarReceta)
 }

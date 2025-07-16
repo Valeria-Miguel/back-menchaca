@@ -5,6 +5,7 @@ import (
 	"back-menchaca/models"
 	"back-menchaca/utils"
 	"database/sql"
+	 "fmt"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -149,3 +150,122 @@ func EliminarConsulta(c *fiber.Ctx) error {
 	}
 	return utils.Responder(c, "01", modConsul, "consulta-service", fiber.Map{"mensaje": "Consulta eliminada"})
 }
+
+
+func ObtenerConsultasPaciente(c *fiber.Ctx) error {
+    var reqBody struct {
+        IdPaciente int `json:"id_paciente"`
+    }
+
+    // Parsear el cuerpo de la solicitud
+    if err := c.BodyParser(&reqBody); err != nil {
+        fmt.Println("Error al parsear body:", err)
+        return c.Status(400).JSON(fiber.Map{
+            "statusCode": 400,
+            "message":    "Body inválido o formato incorrecto",
+            "error":      err.Error(),
+        })
+    }
+
+    // Validar ID del paciente
+    if reqBody.IdPaciente <= 0 {
+        return c.Status(400).JSON(fiber.Map{
+            "statusCode": 400,
+            "message":    "ID de paciente inválido",
+        })
+    }
+
+    // Ejecutar consulta SQL
+    rows, err := config.DB.Query(`
+        SELECT 
+            id_consulta, 
+            id_paciente, 
+            tipo, 
+            id_receta, 
+            id_horario, 
+            id_consultorio, 
+            diagnostico, 
+            costo, 
+            fecha_hora 
+        FROM Consultas 
+        WHERE id_paciente = $1`, 
+        reqBody.IdPaciente)
+    if err != nil {
+        fmt.Println("Error en consulta SQL:", err)
+        return c.Status(500).JSON(fiber.Map{
+            "statusCode": 500,
+            "message":    "Error al obtener consultas",
+            "error":      err.Error(),
+        })
+    }
+    defer rows.Close()
+
+    var consultas []models.Consulta
+    for rows.Next() {
+        var cons models.Consulta
+        var (
+            diagnostico sql.NullString
+            idReceta    sql.NullInt64
+            costo       sql.NullFloat64
+        )
+        
+        // Escanear los valores, incluyendo los que pueden ser NULL
+        if err := rows.Scan(
+            &cons.ID,
+            &cons.IDPaciente,
+            &cons.Tipo,
+            &idReceta,
+            &cons.IDHorario,
+            &cons.IDConsultorio,
+            &diagnostico,
+            &costo,
+            &cons.FechaHora,
+        ); err != nil {
+            fmt.Println("Error al escanear fila:", err)
+            continue
+        }
+        
+        // Asignar valores NULLables con sus valores por defecto
+        if diagnostico.Valid {
+            cons.Diagnostico = diagnostico.String
+        } else {
+            cons.Diagnostico = "" // Valor por defecto para string
+        }
+        
+        if idReceta.Valid {
+            val := int(idReceta.Int64)
+            cons.IDReceta = &val
+        } else {
+            cons.IDReceta = nil // Valor por defecto para puntero
+        }
+        
+        if costo.Valid {
+            cons.Costo = costo.Float64
+        } else {
+            cons.Costo = 0.0 // Valor por defecto para float
+        }
+        
+        consultas = append(consultas, cons)
+    }
+
+    // Verificar si hubo errores después de iterar
+    if err = rows.Err(); err != nil {
+        fmt.Println("Error después de iterar filas:", err)
+        return c.Status(500).JSON(fiber.Map{
+            "statusCode": 500,
+            "message":    "Error al procesar resultados",
+            "error":      err.Error(),
+        })
+    }
+
+    return c.Status(200).JSON(fiber.Map{
+        "data":       consultas,
+        "from":       "consulta-service",
+        "intCode":    "Consul01",
+        "message":    "Operación realizada exitosamente",
+        "status":     "S01",
+        "statusCode": 200,
+    })
+}
+
+

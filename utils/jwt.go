@@ -29,27 +29,30 @@ func GetPermisosPorRol(rol string) ([]string, error) {
 
 	return permisos, nil
 }
-func GenerateJWT(email, rol string) (string, error) {
-	permisos, err := GetPermisosPorRol(rol)
-	if err != nil {
-		return "", err
-	}
+func GenerateJWT(id string, email string, rol string) (string, error) {
+    permisos, err := GetPermisosPorRol(rol)
+    if err != nil {
+        return "", err
+    }
 
-	claims := jwt.MapClaims{
-		"email":    email,
-		"rol":      rol,
-		"permisos": permisos,
-		"exp":      time.Now().Add(60 * time.Minute).Unix(),
-	}
+    claims := jwt.MapClaims{
+        "id": id,
+        "email": email,
+        "rol": rol,
+        "permisos": permisos,
+        "exp": time.Now().Add(60 * time.Minute).Unix(),
+    }
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(os.Getenv("JWT_SECRET")))
+    token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+    return token.SignedString([]byte(os.Getenv("JWT_SECRET")))
 }
 
 
 
-func GenerateRefreshToken(email, rol string) (string, error) {
-	claims := jwt.MapClaims{
+
+func GenerateRefreshToken(id string, email, rol string) (string, error) {
+    claims := jwt.MapClaims{
+        "id": id,
 		"email": email,
 		"rol":   rol,
 		"exp":   time.Now().Add(7 * 24 * time.Hour).Unix(), 

@@ -31,6 +31,7 @@ func main() {
 		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
 		AllowMethods: "GET, POST, PUT, DELETE, OPTIONS",
 	}))
+	
 	app.Use(limiter.New(limiter.Config{
 		Max:        200,                
 		Expiration: 1 * time.Minute,   
