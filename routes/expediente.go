@@ -8,11 +8,11 @@ import (
 
 
 func ExpedienteRoutes(app fiber.Router) {
-	expediente := app.Group("/expediente", middleware.JWTProtected("empleado"))
+	expediente := app.Group("/expediente")
 
     expediente.Post("/", handlers.CrearExpediente)
-    expediente.Get("/get", handlers.ObtenerExpedientes)
-    expediente.Post("/getExp", handlers.ObtenerExpedientePorID)
+    expediente.Get("/get",middleware.JWTProtected("solicitar_cita"), handlers.ObtenerExpedientes)
+    expediente.Post("/getExp",middleware.JWTProtected("solicitar_cita"), handlers.ObtenerExpedientePorID)
     expediente.Put("/update", handlers.ActualizarExpediente)
     expediente.Delete("/delete", handlers.EliminarExpediente)
 }

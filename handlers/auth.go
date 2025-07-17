@@ -26,6 +26,8 @@ func mapRolToIntCode(rol string) string {
 		return "D01"
 	case "enfermera":
 		return "E01"
+	case "administrador":
+		return "A01"
 	default:
 		return "NOSE" // No especificado
 	}
@@ -457,12 +459,14 @@ func VerifyMFA(c *fiber.Ctx) error {
 // RefreshToken genera un nuevo access token dado un refresh token válido
 func RefreshToken(c *fiber.Ctx) error {
 	refreshToken := c.Cookies("refresh_token")
+	log.Println("[DEBUG] Cookie refresh_token:", refreshToken)
 
 	if refreshToken == "" {
 		var input struct {
 			RefreshToken string `json:"refreshToken" validate:"required"`
 		}
 		if err := c.BodyParser(&input); err != nil {
+			log.Println("[ERROR] Error al parsear cuerpo:", err)
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"statusCode": fiber.StatusBadRequest,
 				"intCode":    "A01",
@@ -472,6 +476,7 @@ func RefreshToken(c *fiber.Ctx) error {
 		}
 
 		if err := validate.Struct(input); err != nil {
+			log.Println("[ERROR] Validación fallida:", err)
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"statusCode": fiber.StatusBadRequest,
 				"intCode":    "A01",
@@ -481,9 +486,11 @@ func RefreshToken(c *fiber.Ctx) error {
 		}
 
 		refreshToken = input.RefreshToken
+		log.Println("[DEBUG] Refresh token recibido en body:", refreshToken)
 	}
 
 	if refreshToken == "" {
+		log.Println("[ERROR] Refresh token vacío")
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"statusCode": fiber.StatusUnauthorized,
 			"intCode":    "A01",
@@ -495,8 +502,8 @@ func RefreshToken(c *fiber.Ctx) error {
 	token, err := jwt.Parse(refreshToken, func(t *jwt.Token) (interface{}, error) {
 		return []byte(os.Getenv("REFRESH_SECRET")), nil
 	})
-
 	if err != nil || !token.Valid {
+		log.Printf("[ERROR] Token inválido o expirado: %v", err)
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"statusCode": fiber.StatusUnauthorized,
 			"intCode":    "A01",
@@ -507,6 +514,7 @@ func RefreshToken(c *fiber.Ctx) error {
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
+		log.Println("[ERROR] Claims no válidos")
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"statusCode": fiber.StatusInternalServerError,
 			"intCode":    "A03",
@@ -515,9 +523,12 @@ func RefreshToken(c *fiber.Ctx) error {
 		})
 	}
 
-	email, ok := claims["email"].(string)
-	rol, ok2 := claims["rol"].(string)
-	if !ok || !ok2 || email == "" || rol == "" {
+	email, okEmail := claims["email"].(string)
+	rol, okRol := claims["rol"].(string)
+	log.Println("[DEBUG] Claims extraídos - Email:", email, "Rol:", rol)
+
+	if !okEmail || !okRol || email == "" || rol == "" {
+		log.Println("[ERROR] Email o rol inválido en el token")
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"statusCode": fiber.StatusUnauthorized,
 			"intCode":    "A01",
@@ -526,16 +537,16 @@ func RefreshToken(c *fiber.Ctx) error {
 		})
 	}
 
-	// Verificar existencia de usuario
 	var id string
-		err = config.DB.QueryRow(`
-	SELECT id FROM (
-		SELECT id_paciente AS id, correo FROM paciente WHERE correo = $1
-		UNION
-		SELECT id_empleado AS id, correo FROM empleado WHERE correo = $1
-	) AS usuarios LIMIT 1`, email).Scan(&id)
+	err = config.DB.QueryRow(`
+		SELECT id FROM (
+			SELECT id_paciente AS id, correo FROM paciente WHERE correo = $1
+			UNION
+			SELECT id_empleado AS id, correo FROM empleado WHERE correo = $1
+		) AS usuarios LIMIT 1`, email).Scan(&id)
 
-		if err != nil || id == "" {
+	if err != nil || id == "" {
+		log.Println("[ERROR] Usuario no encontrado en DB para el email:", email)
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"statusCode": fiber.StatusUnauthorized,
 			"intCode":    "A01",
@@ -544,9 +555,11 @@ func RefreshToken(c *fiber.Ctx) error {
 		})
 	}
 
-	// Generar nuevo token de acceso
+	log.Println("[DEBUG] Usuario encontrado. ID:", id)
+
 	newToken, err := utils.GenerateJWT(id, email, rol)
 	if err != nil {
+		log.Println("[ERROR] Error generando nuevo token:", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"statusCode": fiber.StatusInternalServerError,
 			"intCode":    "A03",
@@ -554,6 +567,8 @@ func RefreshToken(c *fiber.Ctx) error {
 			"from":       "auth-service",
 		})
 	}
+
+	log.Println("[DEBUG] Nuevo token generado para:", email)
 
 	return c.JSON(fiber.Map{
 		"statusCode": fiber.StatusOK,

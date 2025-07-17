@@ -16,5 +16,6 @@ func ConsultasRoutes(app fiber.Router) {
 	consultas.Put("/update", handlers.ActualizarConsulta)
 	consultas.Delete("/delete", handlers.EliminarConsulta)
 	consultas.Post("/paciente/", middleware.JWTProtected("solicitar_cita"), handlers.ObtenerConsultasPaciente)
+	consultas.Post("/doctor/", middleware.JWTProtected("solicitar_cita"), handlers.ObtenerConsultasPorEmpleado)
 
 }

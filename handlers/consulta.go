@@ -6,6 +6,8 @@ import (
 	"back-menchaca/utils"
 	"database/sql"
 	 "fmt"
+	 "time"
+	 "log"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -45,22 +47,149 @@ func AgendarConsulta(c *fiber.Ctx) error {
 }
 
 func ObtenerConsultas(c *fiber.Ctx) error {
-	rows, err := config.DB.Query(`SELECT id_consulta, id_paciente, tipo, id_receta, id_horario, id_consultorio, diagnostico, costo, fecha_hora FROM Consultas`) 
+	rows, err := config.DB.Query(`
+		SELECT 
+			c.id_consulta,
+			p.nombre AS nombre_paciente, p.appaterno AS app_paterno_paciente, p.apmaterno AS ap_materno_paciente,
+			r.fecha AS fecha_receta, r.medicamento, r.dosis,
+			h.turno,
+			e.nombre AS nombre_empleado, e.appaterno AS app_paterno_empleado, e.apmaterno AS ap_materno_empleado, e.area AS area_empleado,
+			co.tipo AS tipo_consultorio, co.nombre AS nombre_consultorio,
+			c.tipo, c.diagnostico, c.costo, c.fecha_hora
+		FROM Consultas c
+		LEFT JOIN Paciente p ON c.id_paciente = p.id_paciente
+		LEFT JOIN Recetas r ON c.id_receta = r.id_receta
+		LEFT JOIN Horarios h ON c.id_horario = h.id_horario
+		LEFT JOIN Empleado e ON h.id_empleado = e.id_empleado
+		LEFT JOIN Consultorios co ON c.id_consultorio = co.id_consultorio
+
+	`)
 	if err != nil {
 		return utils.Responder(c, "06", modConsul, "consulta-service", nil, "Error al obtener consultas")
 	}
 	defer rows.Close()
 
-	var consultas []models.Consulta
+	type ConsultaDetallada struct {
+		IDConsulta     int        `json:"id_consulta"`
+		NombrePaciente string     `json:"nombre_paciente"`
+		AppPaterno     string     `json:"appaterno_paciente"`
+		AppMaterno     string     `json:"apmaterno_paciente"`
+		FechaReceta    sql.NullTime   `json:"fecha_receta"`
+		Medicamento    sql.NullString `json:"medicamento"`
+		Dosis          sql.NullString `json:"dosis"`
+		Turno          string     `json:"turno"`
+		EmpleadoNombre string     `json:"nombre_empleado"`
+		EmpleadoAppPat string     `json:"appaterno_empleado"`
+		EmpleadoAppMat string     `json:"apmaterno_empleado"`
+		AreaEmpleado   string     `json:"area_empleado"`
+		TipoConsul     string     `json:"tipo_consultorio"`
+		NombreConsul   string     `json:"nombre_consultorio"`
+		TipoConsulta   string     `json:"tipo"`
+		Diagnostico    sql.NullString     `json:"diagnostico"`
+		Costo          sql.NullFloat64    `json:"costo"`
+		FechaHora      *time.Time `json:"fecha_hora"`      // CAMBIO: *time.Time
+	}
+
+
+	var consultas []ConsultaDetallada
 	for rows.Next() {
-		var cons models.Consulta
-		if err := rows.Scan(&cons.ID, &cons.IDPaciente, &cons.Tipo, &cons.IDReceta, &cons.IDHorario, &cons.IDConsultorio, &cons.Diagnostico, &cons.Costo, &cons.FechaHora); err == nil {
+	var cons ConsultaDetallada
+		if err := rows.Scan(
+			&cons.IDConsulta,
+			&cons.NombrePaciente, &cons.AppPaterno, &cons.AppMaterno,
+			&cons.FechaReceta, &cons.Medicamento, &cons.Dosis,
+			&cons.Turno,
+			&cons.EmpleadoNombre, &cons.EmpleadoAppPat, &cons.EmpleadoAppMat, &cons.AreaEmpleado,
+			&cons.TipoConsul, &cons.NombreConsul,
+			&cons.TipoConsulta, &cons.Diagnostico, &cons.Costo, &cons.FechaHora,
+		); err != nil {
+			log.Printf("❌ Error en rows.Scan: %v", err)
+		} else {
 			consultas = append(consultas, cons)
 		}
 	}
 
 	return utils.Responder(c, "01", modConsul, "consulta-service", consultas)
 }
+
+func ObtenerConsultasPorEmpleado(c *fiber.Ctx) error {
+	// 1. Leer el ID del empleado desde el body
+	var body struct {
+		IDEmpleado int `json:"id_empleado" validate:"required"`
+	}
+	if err := c.BodyParser(&body); err != nil {
+		return utils.Responder(c, "02", modConsul, "consulta-service", nil, "JSON inválido")
+	}
+
+	// 2. Ejecutar consulta filtrando por id_empleado
+	rows, err := config.DB.Query(`
+		SELECT 
+			c.id_consulta,
+			co.id_consultorio,
+			p.nombre AS nombre_paciente, p.appaterno AS app_paterno_paciente, p.apmaterno AS ap_materno_paciente,
+			r.fecha AS fecha_receta, r.medicamento, r.dosis,
+			h.turno,
+			e.nombre AS nombre_empleado, e.appaterno AS app_paterno_empleado, e.apmaterno AS ap_materno_empleado, e.area AS area_empleado,
+			co.tipo AS tipo_consultorio, co.nombre AS nombre_consultorio,
+			c.tipo, c.diagnostico, c.costo, c.fecha_hora
+		FROM Consultas c
+		LEFT JOIN Paciente p ON c.id_paciente = p.id_paciente
+		LEFT JOIN Recetas r ON c.id_receta = r.id_receta
+		LEFT JOIN Horarios h ON c.id_horario = h.id_horario
+		LEFT JOIN Empleado e ON h.id_empleado = e.id_empleado
+		LEFT JOIN Consultorios co ON c.id_consultorio = co.id_consultorio
+		WHERE e.id_empleado = $1
+	`, body.IDEmpleado)
+	if err != nil {
+		return utils.Responder(c, "06", modConsul, "consulta-service", nil, "Error al obtener consultas")
+	}
+	defer rows.Close()
+
+	type ConsultaDetallada struct {
+		IDConsulta     int             `json:"id_consulta"`
+		IDConsultorio  int             `json:"id_consultorio"`
+		NombrePaciente string          `json:"nombre_paciente"`
+		AppPaterno     string          `json:"appaterno_paciente"`
+		AppMaterno     string          `json:"apmaterno_paciente"`
+		FechaReceta    sql.NullTime    `json:"fecha_receta"`
+		Medicamento    sql.NullString  `json:"medicamento"`
+		Dosis          sql.NullString  `json:"dosis"`
+		Turno          string          `json:"turno"`
+		EmpleadoNombre string          `json:"nombre_empleado"`
+		EmpleadoAppPat string          `json:"appaterno_empleado"`
+		EmpleadoAppMat string          `json:"apmaterno_empleado"`
+		AreaEmpleado   string          `json:"area_empleado"`
+		TipoConsul     string          `json:"tipo_consultorio"`
+		NombreConsul   string          `json:"nombre_consultorio"`
+		TipoConsulta   string          `json:"tipo"`
+		Diagnostico    sql.NullString  `json:"diagnostico"`
+		Costo          sql.NullFloat64 `json:"costo"`
+		FechaHora      *time.Time      `json:"fecha_hora"`
+	}
+
+	var consultas []ConsultaDetallada
+	for rows.Next() {
+		var cons ConsultaDetallada
+		if err := rows.Scan(
+			&cons.IDConsulta,
+			&cons.IDConsultorio,
+			&cons.NombrePaciente, &cons.AppPaterno, &cons.AppMaterno,
+			&cons.FechaReceta, &cons.Medicamento, &cons.Dosis,
+			&cons.Turno,
+			&cons.EmpleadoNombre, &cons.EmpleadoAppPat, &cons.EmpleadoAppMat, &cons.AreaEmpleado,
+			&cons.TipoConsul, &cons.NombreConsul,
+			&cons.TipoConsulta, &cons.Diagnostico, &cons.Costo, &cons.FechaHora,
+		); err != nil {
+			log.Printf("❌ Error en rows.Scan: %v", err)
+		} else {
+			consultas = append(consultas, cons)
+		}
+	}
+
+	return utils.Responder(c, "01", modConsul, "consulta-service", consultas)
+}
+
+
 
 func ObtenerConsultaPorID(c *fiber.Ctx) error {
 	var body struct {

@@ -148,7 +148,6 @@ func ActualizarEmpleado(c *fiber.Ctx) error {
 	return utils.Responder(c, "01", modEmpl, "empleado-service", fiber.Map{"mensaje": "Empleado actualizado"})
 }
 
-
 func EliminarEmpleado(c *fiber.Ctx) error {
 	var body struct {
 		ID int `json:"id_empleado"`

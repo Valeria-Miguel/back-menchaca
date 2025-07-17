@@ -109,9 +109,10 @@ func ValidarEmpleado(nombre, appaterno, tipo, area, correo, contrasena string) e
 	if strings.TrimSpace(tipo) == "" || !ValidarTextoLetras(tipo) {
 		return errors.New("tipo de empleado inválido")
 	}
-	if tipo != "doctor" && tipo != "enfermera" {
-		return errors.New("tipo de empleado inválido. Solo se permite 'doctor' o 'enfermera'")
-	}
+	if tipo != "doctor" && tipo != "enfermera" && tipo != "administrador" {
+	return errors.New("tipo de empleado inválido. Solo se permite 'doctor', 'enfermera' o 'administrador'")
+}
+
 	if strings.TrimSpace(area) == "" || !ValidarTextoLetras(area) {
 		return errors.New("area inválida")
 	}
